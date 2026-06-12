@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -14,7 +15,8 @@ class AuthService {
 
   final SharedPreferences _preferences;
 
-  static const _baseUrl =
+  static String get _baseUrl =>
+      dotenv.env['API_BASE_URL'] ??
       'https://vivajauh-be-production.up.railway.app/api/v1';
   static const _sessionKey = 'vivajauh.auth.session';
   static const _onboardingKey = 'vivajauh.onboarding.completed';
