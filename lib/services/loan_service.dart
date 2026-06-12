@@ -35,6 +35,11 @@ class LoanService {
     return LoanApplication.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
+  Future<LoanAuditTrail> auditTrail(AuthSession session, String id) async {
+    final data = await _request(session, 'GET', '/loans/$id/history');
+    return LoanAuditTrail.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
   Future<LoanApplication> create(
     AuthSession session, {
     required String applicantName,

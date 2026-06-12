@@ -98,6 +98,85 @@ class LoanRecommendation {
       );
 }
 
+class LoanAuditEntry {
+  const LoanAuditEntry({
+    required this.action,
+    required this.actorName,
+    required this.actorRole,
+    required this.reviewNote,
+    required this.createdAt,
+  });
+
+  final String action;
+  final String actorName;
+  final String actorRole;
+  final String? reviewNote;
+  final DateTime createdAt;
+
+  String get actionTitle => switch (action) {
+        'loan_application_created' => 'Pengajuan dibuat',
+        'loan_recommendation_generated' => 'Rekomendasi risiko dihasilkan',
+        'loan_application_approved' => 'Pengajuan disetujui',
+        'loan_application_rejected' => 'Pengajuan ditolak',
+        'loan_audit_report_exported' => 'Laporan pemeriksaan diekspor',
+        _ => action,
+      };
+
+  factory LoanAuditEntry.fromJson(Map<String, dynamic> json) {
+    final metadata =
+        Map<String, dynamic>.from(json['metadata'] as Map? ?? {});
+    return LoanAuditEntry(
+      action: json['action'] as String? ?? '',
+      actorName: json['actor_name'] as String? ?? 'Tidak dikenal',
+      actorRole: json['actor_role'] as String? ?? 'unknown',
+      reviewNote: metadata['review_note'] as String?,
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String? ?? '')?.toLocal() ??
+              DateTime.now(),
+    );
+  }
+}
+
+class LoanAuditTrail {
+  const LoanAuditTrail({
+    required this.flags,
+    required this.integrityValid,
+    required this.checkedEntries,
+    required this.timeline,
+  });
+
+  final List<String> flags;
+  final bool integrityValid;
+  final int checkedEntries;
+  final List<LoanAuditEntry> timeline;
+
+  factory LoanAuditTrail.fromJson(Map<String, dynamic> json) {
+    final integrity =
+        Map<String, dynamic>.from(json['integrity'] as Map? ?? {});
+    return LoanAuditTrail(
+      flags: (json['flags'] as List<dynamic>? ?? [])
+          .map((flag) => flag.toString())
+          .toList(),
+      integrityValid: integrity['integrity'] == 'valid',
+      checkedEntries: (integrity['checked_entries'] as num? ?? 0).toInt(),
+      timeline: (json['timeline'] as List<dynamic>? ?? [])
+          .map(
+            (item) =>
+                LoanAuditEntry.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
+    );
+  }
+}
+
+String loanFlagTitle(String flag) => switch (flag) {
+      'FAST_DECISION' => 'Keputusan < 30 menit',
+      'RECOMMENDATION_SKIPPED' => 'Rekomendasi dilewati',
+      'HIGH_RISK_APPROVED' => 'Risiko tinggi disetujui',
+      'MISSING_REVIEW_NOTE' => 'Catatan keputusan kosong',
+      _ => flag,
+    };
+
 class LoanApplication {
   const LoanApplication({
     required this.id,
