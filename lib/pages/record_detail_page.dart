@@ -26,28 +26,7 @@ class RecordDetailPage extends StatelessWidget {
     final icon = AppRecordStyle.icon(record.recordType);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(record.recordType.title),
-        actions: [
-          if (record.recordType != RecordType.correction)
-            PopupMenuButton<String>(
-              onSelected: (v) {
-                if (v == 'correct') _pushCorrection(context);
-                if (v == 'delete') _showDeleteSheet(context);
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'correct', child: Text('Ajukan Koreksi')),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text(
-                    'Ajukan Hapus',
-                    style: TextStyle(color: AppColors.danger),
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(record.recordType.title)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
