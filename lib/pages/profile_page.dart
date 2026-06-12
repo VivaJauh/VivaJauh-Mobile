@@ -23,7 +23,6 @@ class ProfilePage extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Gradient header
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 20,

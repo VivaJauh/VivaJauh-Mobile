@@ -22,7 +22,6 @@ class ReportsPage extends StatelessWidget {
     final savingsSummary = Aggregator.computeSavingsLoan(records);
     final syncDelay = Aggregator.computeSyncDelays(records);
 
-    // Last 14 days sync data
     final now = DateTime.now();
     final days14 = List.generate(14, (i) => now.subtract(Duration(days: 13 - i)));
     final dailyCounts = days14.map((day) {
@@ -40,7 +39,6 @@ class ReportsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Activity trend
           TrendChartCard(
             title: 'Aktivitas 14 Hari Terakhir',
             days: days14.map((d) => AppFormats.dateDay(d)).toList(),
@@ -49,7 +47,6 @@ class ReportsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Feed summary
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +95,6 @@ class ReportsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Livestock summary
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +143,6 @@ class ReportsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Savings summary
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +163,6 @@ class ReportsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Sync delay summary
           if (syncDelay.entries.isNotEmpty)
             SectionCard(
               child: Column(

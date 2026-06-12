@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/models.dart';
+import '../../utils/formats.dart';
 import '../../widgets/widgets.dart';
 import 'form_shared.dart';
 
@@ -9,12 +10,14 @@ class FeedForm extends StatefulWidget {
     required this.officer,
     required this.onSubmit,
     this.initialPayload,
+    this.stockByType,
     super.key,
   });
 
   final String officer;
   final PayloadSubmit onSubmit;
   final Map<String, dynamic>? initialPayload;
+  final Map<String, double>? stockByType;
 
   @override
   State<FeedForm> createState() => _FeedFormState();
@@ -61,10 +64,51 @@ class _FeedFormState extends State<FeedForm> {
           ? _customTypeCtrl.text.trim()
           : _feedTypeSelection;
 
+  double? get _availableStock => widget.stockByType?[_resolvedFeedType] ?? 0;
+
+  bool get _isOutgoing =>
+      _direction == FeedDirection.keluar || _direction == FeedDirection.rusak;
+
+  Future<bool> _confirmOverdraw(double available, double qty) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Stok Tidak Mencukupi'),
+        content: Text(
+          'Stok $_resolvedFeedType tercatat hanya ${available.toStringAsFixed(available == available.roundToDouble() ? 0 : 1)} kg, '
+          'sedangkan kamu mencatat ${_direction.label.toLowerCase()} ${qty.toStringAsFixed(qty == qty.roundToDouble() ? 0 : 1)} kg.\n\n'
+          'Catatan tetap bisa disimpan (mungkin ada stok fisik yang belum tercatat), '
+          'tapi saldo jenis ini akan minus dan perlu dikoreksi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tetap Simpan'),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final qty = parseFlexibleNumber(_qtyCtrl.text);
     if (qty == null || qty <= 0) return;
+
+    if (widget.stockByType != null && _isOutgoing) {
+      final available = _availableStock ?? 0;
+      if (qty > available && !await _confirmOverdraw(available, qty)) return;
+    }
+    if (!mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -120,6 +164,9 @@ class _FeedFormState extends State<FeedForm> {
             label: 'Jumlah',
             controller: _qtyCtrl,
             suffix: 'kg',
+            helper: widget.stockByType != null
+                ? 'Stok $_resolvedFeedType tercatat: ${AppFormats.kg(_availableStock ?? 0)}'
+                : null,
           ),
           const SizedBox(height: 16),
           LabeledTextField(

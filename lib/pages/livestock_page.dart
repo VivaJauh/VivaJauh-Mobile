@@ -67,7 +67,6 @@ class _LivestockPageState extends State<LivestockPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           children: [
-            // Stat cards
             StatCardRow(
               children: [
                 StatCard(
@@ -103,7 +102,6 @@ class _LivestockPageState extends State<LivestockPage> {
             ),
             const SizedBox(height: 16),
 
-            // Bar chart by type
             if (summary.populationByType.isNotEmpty) ...[
               SectionCard(
                 child: HBarChart(
@@ -124,7 +122,6 @@ class _LivestockPageState extends State<LivestockPage> {
               const SizedBox(height: 16),
             ],
 
-            // Filter chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -147,7 +144,6 @@ class _LivestockPageState extends State<LivestockPage> {
             ),
             const SizedBox(height: 10),
 
-            // History
             if (filtered.isEmpty)
               EmptyState(
                 icon: AppIcons.emptyInbox,

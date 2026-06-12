@@ -71,6 +71,7 @@ class _RecordsPageState extends State<RecordsPage> {
           session: widget.session,
           recordType: type,
           onSave: widget.onAddRecord,
+          records: widget.records,
         ),
       ),
     );

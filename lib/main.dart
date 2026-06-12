@@ -27,19 +27,16 @@ class VivaJauhApp extends StatefulWidget {
 }
 
 class _VivaJauhAppState extends State<VivaJauhApp> {
-  // Auth state
   var _loading = true;
   var _authLoading = false;
   var _onboarded = false;
   String? _errorMessage;
   AuthSession? _session;
 
-  // App state
   List<OfflineRecord> _records = [];
   bool _syncing = false;
   bool _online = true;
 
-  // Services
   late final RecordService _recordService;
   late final SyncService _syncService;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;

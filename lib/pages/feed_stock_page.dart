@@ -41,6 +41,7 @@ class FeedStockPage extends StatelessWidget {
               session: session,
               recordType: RecordType.feedTransaction,
               onSave: onAddRecord,
+              records: records,
             ),
           ),
         ),
@@ -52,7 +53,6 @@ class FeedStockPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           children: [
-            // Hero card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -94,7 +94,6 @@ class FeedStockPage extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // Stat cards
             StatCardRow(
               children: [
                 StatCard(
@@ -120,28 +119,11 @@ class FeedStockPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Bar chart by type
             if (summary.balanceByType.isNotEmpty) ...[
-              SectionCard(
-                child: HBarChart(
-                  title: 'Stok per Jenis Pakan',
-                  unit: ' kg',
-                  items: (summary.balanceByType.entries.toList()
-                        ..sort((a, b) => b.value.compareTo(a.value)))
-                      .map(
-                        (e) => HBarItem(
-                          label: e.key,
-                          value: e.value,
-                          color: AppColors.primary,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
+              _StockByTypeCard(balanceByType: summary.balanceByType),
               const SizedBox(height: 16),
             ],
 
-            // History
             Text(
               'Riwayat Transaksi',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -179,6 +161,88 @@ class FeedStockPage extends StatelessWidget {
                   ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StockByTypeCard extends StatelessWidget {
+  const _StockByTypeCard({required this.balanceByType});
+
+  final Map<String, double> balanceByType;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = balanceByType.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final maxValue = entries
+        .map((e) => e.value.abs())
+        .fold<double>(0, (a, b) => a > b ? a : b);
+
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Stok per Jenis Pakan',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 12),
+          for (final entry in entries) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.key,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+                if (entry.value < 0) ...[
+                  StatusBadge.custom(
+                    label: 'Minus — perlu koreksi',
+                    background: const Color(0xFFFFE4E1),
+                    foreground: AppColors.dangerDark,
+                    icon: AppIcons.warning,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  AppFormats.kg(entry.value),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: entry.value < 0
+                        ? AppColors.dangerDark
+                        : AppColors.text,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: maxValue <= 0
+                    ? 0
+                    : (entry.value.abs() / maxValue).clamp(0.0, 1.0),
+                minHeight: 6,
+                backgroundColor: AppColors.background,
+                valueColor: AlwaysStoppedAnimation(
+                  entry.value < 0 ? AppColors.danger : AppColors.primary,
+                ),
+              ),
+            ),
+            if (entry != entries.last) const SizedBox(height: 12),
+          ],
+        ],
       ),
     );
   }

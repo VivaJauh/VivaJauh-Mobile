@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../services/aggregator.dart';
 import '../widgets/widgets.dart';
 import 'forms/daily_report_form.dart';
 import 'forms/feed_form.dart';
@@ -16,6 +17,7 @@ class RecordFormPage extends StatefulWidget {
     required this.onSave,
     this.recordType,
     this.initialRecord,
+    this.records,
     super.key,
   }) : assert(
           recordType != null || initialRecord != null,
@@ -26,6 +28,7 @@ class RecordFormPage extends StatefulWidget {
   final Future<void> Function(RecordType, Map<String, dynamic>) onSave;
   final RecordType? recordType;
   final OfflineRecord? initialRecord;
+  final List<OfflineRecord>? records;
 
   @override
   State<RecordFormPage> createState() => _RecordFormPageState();
@@ -81,6 +84,9 @@ class _RecordFormPageState extends State<RecordFormPage> {
           officer: officer,
           onSubmit: _onSubmit,
           initialPayload: initial,
+          stockByType: widget.records != null
+              ? Aggregator.computeFeedStock(widget.records!).balanceByType
+              : null,
         ),
       RecordType.livestockEvent => LivestockForm(
           officer: officer,

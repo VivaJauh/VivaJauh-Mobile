@@ -66,7 +66,6 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           OfflineBanner(online: online, pendingCount: _pendingCount),
-          // Greeting
           Row(
             children: [
               Expanded(
@@ -113,7 +112,6 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Stat cards
           StatCardRow(
             children: [
               StatCard(
@@ -150,7 +148,6 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Quick actions
           Text(
             'Catat Sekarang',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -158,10 +155,13 @@ class HomePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _QuickActions(session: session, onAddRecord: onAddRecord),
+          _QuickActions(
+            session: session,
+            records: records,
+            onAddRecord: onAddRecord,
+          ),
           const SizedBox(height: 20),
 
-          // Recent activity
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -221,9 +221,14 @@ class HomePage extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.session, required this.onAddRecord});
+  const _QuickActions({
+    required this.session,
+    required this.records,
+    required this.onAddRecord,
+  });
 
   final AuthSession session;
+  final List<OfflineRecord> records;
   final Future<void> Function(RecordType, Map<String, dynamic>) onAddRecord;
 
   static const _actions = [
@@ -256,6 +261,7 @@ class _QuickActions extends StatelessWidget {
                     session: session,
                     recordType: a.type,
                     onSave: onAddRecord,
+                    records: records,
                   ),
                 ),
               ),

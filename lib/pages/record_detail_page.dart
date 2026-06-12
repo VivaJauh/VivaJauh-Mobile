@@ -51,7 +51,6 @@ class RecordDetailPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header card
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -102,7 +101,6 @@ class RecordDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Status section
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +136,6 @@ class RecordDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Timeline section
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +167,6 @@ class RecordDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Payload section
           SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

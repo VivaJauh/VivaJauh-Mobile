@@ -43,7 +43,6 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
       if (!mounted) return;
       setState(() => _auditTrail = trail);
     } catch (_) {
-      // Jejak audit bersifat pelengkap; kegagalan tidak memblokir detail.
     }
   }
 

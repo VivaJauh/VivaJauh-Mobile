@@ -63,7 +63,6 @@ class SyncQueuePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Stat cards
           StatCardRow(
             children: [
               StatCard(
@@ -106,7 +105,6 @@ class SyncQueuePage extends StatelessWidget {
               message: 'Tidak ada catatan yang menunggu sinkronisasi.',
             ),
           ] else ...[
-            // Failed records
             if (failed.isNotEmpty) ...[
               _SectionHeader(
                 label: 'Gagal (${failed.length})',
@@ -122,7 +120,6 @@ class SyncQueuePage extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // Conflict records
             if (conflict.isNotEmpty) ...[
               _SectionHeader(
                 label: 'Konflik (${conflict.length})',
@@ -135,7 +132,6 @@ class SyncQueuePage extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // Pending records
             if (pending.isNotEmpty) ...[
               _SectionHeader(
                 label: 'Menunggu (${pending.length})',
@@ -147,7 +143,6 @@ class SyncQueuePage extends StatelessWidget {
             ],
           ],
 
-          // Sync delay audit
           if (delay.entries.isNotEmpty) ...[
             Text(
               'Audit Delay Sinkronisasi',
