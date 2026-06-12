@@ -60,6 +60,8 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
       ? _items
       : _items.where((a) => a.status == _statusFilter).toList();
 
+  bool get _canApply => widget.session.role == 'member';
+
   Future<void> _openApply() async {
     final created = await Navigator.push<LoanApplication>(
       context,
@@ -108,12 +110,14 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: widget.online ? _openApply : null,
-        tooltip: 'Ajukan pinjaman baru',
-        icon: const Icon(AppIcons.add),
-        label: const Text('Ajukan'),
-      ),
+      floatingActionButton: _canApply
+          ? FloatingActionButton.extended(
+              onPressed: widget.online ? _openApply : null,
+              tooltip: 'Ajukan pinjaman baru',
+              icon: const Icon(AppIcons.add),
+              label: const Text('Ajukan'),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: _load,
         color: AppColors.primary,
@@ -144,11 +148,12 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
                 message: _error!,
               )
             else if (_filtered.isEmpty)
-              const EmptyState(
+              EmptyState(
                 icon: AppIcons.loanApplication,
                 title: 'Belum ada pengajuan',
-                message:
-                    'Ajukan pinjaman anggota untuk dianalisis riwayatnya lintas koperasi.',
+                message: _canApply
+                    ? 'Ajukan pinjaman anggota untuk dianalisis riwayatnya lintas koperasi.'
+                    : 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
               )
             else
               for (final app in _filtered) ...[
