@@ -1,6 +1,7 @@
 export 'admin_service.dart';
 export 'aggregator.dart';
 export 'auth_service.dart';
+export 'loan_service.dart';
 export 'local_db.dart';
 export 'record_service.dart';
 export 'sync_service.dart';
