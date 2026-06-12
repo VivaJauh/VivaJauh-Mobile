@@ -180,14 +180,24 @@ class _HeroHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.asset(
-            'assets/logo_withbg.png',
-            height: 46,
-            width: 46,
-            fit: BoxFit.cover,
-          ),
+        Row(
+          children: [
+            Image.asset(
+              'assets/logo_nobg.png',
+              height: 46,
+              width: 46,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'VivaJauh',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+            ),
+          ],
         ),
         const SizedBox(height: 30),
         Text(
