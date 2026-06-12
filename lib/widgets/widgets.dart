@@ -8,3 +8,4 @@ export 'record_tile.dart';
 export 'section_card.dart';
 export 'stat_card.dart';
 export 'status_badge.dart';
+export 'trend_chart.dart';
