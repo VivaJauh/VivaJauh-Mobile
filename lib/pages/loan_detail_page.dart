@@ -28,7 +28,8 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
   bool _deciding = false;
   String? _error;
 
-  bool get _isAdmin => widget.session.role == 'remote_admin';
+  bool _canDecide(LoanApplication app) =>
+      widget.session.role == 'secondary_admin';
 
   @override
   void initState() {
@@ -191,7 +192,8 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
                           const SizedBox(height: 12),
                         ],
                       ],
-                      if (app.status == LoanStatus.pendingReview && _isAdmin)
+                      if (app.status == LoanStatus.pendingReview &&
+                          _canDecide(app))
                         _DecisionButtons(
                           deciding: _deciding,
                           onApprove: () => _decide(approve: true),
@@ -609,7 +611,7 @@ class _AwaitingAdminCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Menunggu keputusan admin koperasi. Hanya admin yang berwenang menyetujui atau menolak.',
+              'Menunggu keputusan Secondary Admin. Koperasi sekunder berwenang menyetujui atau menolak setelah melihat rekap 12 bulan terakhir.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.warningDark,
                     fontWeight: FontWeight.w600,
