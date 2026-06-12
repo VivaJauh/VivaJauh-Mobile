@@ -22,6 +22,12 @@ class AppIcons {
   static const IconData navSyncActive = PhosphorIconsBold.arrowsClockwise;
   static const IconData navProfile = PhosphorIconsRegular.user;
   static const IconData navProfileActive = PhosphorIconsFill.user;
+  static const IconData navMembers = PhosphorIconsRegular.usersThree;
+  static const IconData navMembersActive = PhosphorIconsFill.usersThree;
+  static const IconData navLoan = PhosphorIconsRegular.bank;
+  static const IconData navLoanActive = PhosphorIconsFill.bank;
+  static const IconData navKoperasi = PhosphorIconsRegular.buildings;
+  static const IconData navKoperasiActive = PhosphorIconsFill.buildings;
 
   static const IconData pending = PhosphorIconsFill.clock;
   static const IconData sync = PhosphorIconsBold.arrowsClockwise;
