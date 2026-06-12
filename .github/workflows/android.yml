@@ -1,0 +1,132 @@
+name: VivaJauh Android Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build APK and AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "API_BASE_URL variable is required"
+            exit 1
+          fi
+          printf 'API_BASE_URL=%s\n' "$API_BASE_URL" > .env
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.9"
+          channel: stable
+          cache: true
+
+      - name: Decode release keystore
+        env:
+          VIVAJAUH_KEYSTORE_BASE64: ${{ secrets.VIVAJAUH_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$VIVAJAUH_KEYSTORE_BASE64" ]; then
+            echo "VIVAJAUH_KEYSTORE_BASE64 secret is required"
+            exit 1
+          fi
+          printf '%s' "$VIVAJAUH_KEYSTORE_BASE64" | base64 --decode > android/app/vivajauh-release.keystore
+
+      - name: Create Android signing properties
+        env:
+          VIVAJAUH_KEYSTORE_PASSWORD: ${{ secrets.VIVAJAUH_KEYSTORE_PASSWORD }}
+          VIVAJAUH_KEY_ALIAS: ${{ secrets.VIVAJAUH_KEY_ALIAS }}
+          VIVAJAUH_KEY_PASSWORD: ${{ secrets.VIVAJAUH_KEY_PASSWORD }}
+        run: |
+          if [ -z "$VIVAJAUH_KEYSTORE_PASSWORD" ] || [ -z "$VIVAJAUH_KEY_ALIAS" ] || [ -z "$VIVAJAUH_KEY_PASSWORD" ]; then
+            echo "Android signing secrets are required"
+            exit 1
+          fi
+          cat > android/key.properties <<EOF
+          storeFile=vivajauh-release.keystore
+          storePassword=$VIVAJAUH_KEYSTORE_PASSWORD
+          keyAlias=$VIVAJAUH_KEY_ALIAS
+          keyPassword=$VIVAJAUH_KEY_PASSWORD
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release --split-per-abi --build-number ${{ github.run_number }}
+
+      - name: Build release AAB
+        run: flutter build appbundle --release --build-number ${{ github.run_number }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivajauh-release-apk
+          path: build/app/outputs/flutter-apk/*-release.apk
+          retention-days: 14
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivajauh-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      - name: Generate release metadata
+        id: release_meta
+        run: |
+          echo "tag=v1.0.0-build.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        run: |
+          RECENT_CHANGES=$(git log -5 --pretty=format:"- %s (%h)")
+          cat > release_notes.md <<EOF
+          ## Build Information
+          - Build number: ${{ github.run_number }}
+          - Build date: ${{ steps.release_meta.outputs.date }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+
+          ## Artifacts
+          - APK: Android sideload/install builds split per ABI
+          - AAB: Google Play upload build
+
+          ## Recent Changes
+          $RECENT_CHANGES
+          EOF
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.release_meta.outputs.tag }}" \
+            build/app/outputs/flutter-apk/*-release.apk \
+            build/app/outputs/bundle/release/app-release.aab \
+            --title "VivaJauh Build #${{ github.run_number }}" \
+            --notes-file release_notes.md \
+            --target "${{ github.sha }}"
