@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
 import '../services/tenant_service.dart';
@@ -8,7 +10,9 @@ import '../widgets/widgets.dart';
 import 'loan_detail_page.dart';
 import 'tenant_records_page.dart';
 
-class PrimaryHomePage extends StatefulWidget {
+typedef _PrimaryHomeData = (List<MemberSummary>, List<LoanApplication>);
+
+class PrimaryHomePage extends StatelessWidget {
   const PrimaryHomePage({
     required this.session,
     required this.online,
@@ -19,73 +23,67 @@ class PrimaryHomePage extends StatefulWidget {
   final bool online;
 
   @override
-  State<PrimaryHomePage> createState() => _PrimaryHomePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<_PrimaryHomeData>(() async {
+        final results = await Future.wait<Object>([
+          const TenantService().members(session),
+          const LoanService().list(session),
+        ]);
+        return (
+          results[0] as List<MemberSummary>,
+          results[1] as List<LoanApplication>,
+        );
+      })
+        ..add(const FetchRequested()),
+      child: _PrimaryHomeView(session: session, online: online),
+    );
+  }
 }
 
-class _PrimaryHomePageState extends State<PrimaryHomePage> {
-  final _tenantService = const TenantService();
-  final _loanService = const LoanService();
+class _PrimaryHomeView extends StatelessWidget {
+  const _PrimaryHomeView({required this.session, required this.online});
 
-  List<MemberSummary> _members = [];
-  List<LoanApplication> _applications = [];
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
+  final bool online;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<_PrimaryHomeData>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait([
-        _tenantService.members(widget.session),
-        _loanService.list(widget.session),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _members = results[0] as List<MemberSummary>;
-        _applications = results[1] as List<LoanApplication>;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
-  }
-
-  List<MemberSummary> get _anggota =>
-      _members.where((m) => m.role == 'member').toList();
 
   @override
   Widget build(BuildContext context) {
-    final anggota = _anggota;
+    final state = context.watch<FetchBloc<_PrimaryHomeData>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final applications = state.data?.$2 ?? const <LoanApplication>[];
+    final anggota = (state.data?.$1 ?? const <MemberSummary>[])
+        .where((m) => m.role == 'member')
+        .toList();
     final totalSavings =
         anggota.fold<double>(0, (sum, m) => sum + m.savingsBalance);
-    final pendingApplications = _applications
+    final pendingApplications = applications
         .where((a) => a.status == LoanStatus.pendingReview)
         .length;
-    final recentApplications = _applications.take(3).toList();
+    final recentApplications = applications.take(3).toList();
     final topMembers = (anggota.toList()
           ..sort((a, b) => b.savingsBalance.compareTo(a.savingsBalance)))
         .take(4)
         .toList();
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => _refresh(context),
       color: AppColors.primary,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          if (!widget.online) const OfflineBanner(online: false),
+          if (!online) const OfflineBanner(online: false),
           Text(
             'Pengurus Primer',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -94,7 +92,7 @@ class _PrimaryHomePageState extends State<PrimaryHomePage> {
                 ),
           ),
           Text(
-            widget.session.koperasiName ?? widget.session.name,
+            session.koperasiName ?? session.name,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.text,
@@ -102,18 +100,18 @@ class _PrimaryHomePageState extends State<PrimaryHomePage> {
                 ),
           ),
           const SizedBox(height: 16),
-          if (_loading)
+          if (loading)
             const Padding(
               padding: EdgeInsets.only(top: 80),
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             )
-          else if (_error != null)
+          else if (error != null)
             EmptyState(
               icon: AppIcons.warning,
               title: 'Gagal memuat',
-              message: _error!,
+              message: error,
             )
           else ...[
             StatCardRow(
@@ -172,12 +170,12 @@ class _PrimaryHomePageState extends State<PrimaryHomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => TenantRecordsPage(
-                        session: widget.session,
+                        session: session,
                         title: member.name,
                         subtitle:
                             'Catatan tersinkron milik ${member.name}',
-                        loader: () => _tenantService.memberRecords(
-                          widget.session,
+                        loader: () => const TenantService().memberRecords(
+                          session,
                           member.userId,
                         ),
                       ),
@@ -206,16 +204,17 @@ class _PrimaryHomePageState extends State<PrimaryHomePage> {
                 _ApplicationRow(
                   application: app,
                   onTap: () async {
+                    final bloc = context.read<FetchBloc<_PrimaryHomeData>>();
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => LoanDetailPage(
-                          session: widget.session,
+                          session: session,
                           applicationId: app.id,
                         ),
                       ),
                     );
-                    if (mounted) _load();
+                    if (!bloc.isClosed) bloc.add(const FetchRequested());
                   },
                 ),
                 const SizedBox(height: 8),

@@ -1,88 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/tenant_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 import 'tenant_records_page.dart';
 
-class KoperasiMonitorPage extends StatefulWidget {
+class KoperasiMonitorPage extends StatelessWidget {
   const KoperasiMonitorPage({required this.session, super.key});
 
   final AuthSession session;
 
   @override
-  State<KoperasiMonitorPage> createState() => _KoperasiMonitorPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<List<KoperasiSummary>>(
+        () => const TenantService().koperasiSummaries(session),
+      )..add(const FetchRequested()),
+      child: _KoperasiMonitorView(session: session),
+    );
+  }
 }
 
-class _KoperasiMonitorPageState extends State<KoperasiMonitorPage> {
-  final _tenantService = const TenantService();
+class _KoperasiMonitorView extends StatelessWidget {
+  const _KoperasiMonitorView({required this.session});
 
-  List<KoperasiSummary> _summaries = [];
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final summaries = await _tenantService.koperasiSummaries(widget.session);
-      if (!mounted) return;
-      setState(() {
-        _summaries = summaries;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<List<KoperasiSummary>>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<FetchBloc<List<KoperasiSummary>>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final summaries = state.data ?? const <KoperasiSummary>[];
     final totalMembers =
-        _summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
+        summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
     final totalSavings =
-        _summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
+        summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Monitoring Koperasi')),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            if (_loading)
+            if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
-            else if (_error != null)
+            else if (error != null)
               EmptyState(
                 icon: AppIcons.warning,
                 title: 'Gagal memuat',
-                message: _error!,
+                message: error,
               )
             else ...[
               StatCardRow(
                 children: [
                   StatCard(
                     icon: AppIcons.koperasi,
-                    value: '${_summaries.length}',
+                    value: '${summaries.length}',
                     label: 'Koperasi Primer',
                     color: AppColors.primary,
                   ),
@@ -109,19 +103,19 @@ class _KoperasiMonitorPageState extends State<KoperasiMonitorPage> {
                     ),
               ),
               const SizedBox(height: 10),
-              for (final summary in _summaries) ...[
+              for (final summary in summaries) ...[
                 _KoperasiTile(
                   summary: summary,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => TenantRecordsPage(
-                        session: widget.session,
+                        session: session,
                         title: summary.koperasiName,
                         subtitle:
                             'Catatan tersinkron ${summary.koperasiName}',
-                        loader: () => _tenantService.tenantRecords(
-                          widget.session,
+                        loader: () => const TenantService().tenantRecords(
+                          session,
                           summary.tenantId,
                         ),
                       ),

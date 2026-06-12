@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../widgets/widgets.dart';
 import 'record_detail_page.dart';
 
-class TenantRecordsPage extends StatefulWidget {
+class TenantRecordsPage extends StatelessWidget {
   const TenantRecordsPage({
     required this.session,
     required this.title,
@@ -19,87 +21,88 @@ class TenantRecordsPage extends StatefulWidget {
   final Future<List<OfflineRecord>> Function() loader;
 
   @override
-  State<TenantRecordsPage> createState() => _TenantRecordsPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) =>
+          FetchBloc<List<OfflineRecord>>(loader)..add(const FetchRequested()),
+      child: _TenantRecordsView(
+        session: session,
+        title: title,
+        subtitle: subtitle,
+      ),
+    );
+  }
 }
 
-class _TenantRecordsPageState extends State<TenantRecordsPage> {
-  List<OfflineRecord> _records = [];
-  bool _loading = true;
-  String? _error;
+class _TenantRecordsView extends StatelessWidget {
+  const _TenantRecordsView({
+    required this.session,
+    required this.title,
+    required this.subtitle,
+  });
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  final AuthSession session;
+  final String title;
+  final String subtitle;
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final records = await widget.loader();
-      if (!mounted) return;
-      setState(() {
-        _records = records;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<List<OfflineRecord>>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state =
+        context.watch<FetchBloc<List<OfflineRecord>>>().state;
+    final records = state.data ?? const <OfflineRecord>[];
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: Text(title)),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             Text(
-              widget.subtitle,
+              subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.muted,
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const SizedBox(height: 12),
-            if (_loading)
+            if (state.status == FetchStatus.loading ||
+                state.status == FetchStatus.initial)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
-            else if (_error != null)
+            else if (state.status == FetchStatus.failure)
               EmptyState(
                 icon: AppIcons.warning,
                 title: 'Gagal memuat',
-                message: _error!,
+                message: state.error ?? 'Terjadi kesalahan',
               )
-            else if (_records.isEmpty)
+            else if (records.isEmpty)
               const EmptyState(
                 icon: AppIcons.emptyInbox,
                 title: 'Belum ada catatan',
                 message: 'Belum ada aktivitas yang tersinkron ke server.',
               )
             else
-              for (final record in _records) ...[
+              for (final record in records) ...[
                 RecordTile(
                   record: record,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => RecordDetailPage(
-                        session: widget.session,
+                        session: session,
                         record: record,
                         readOnly: true,
                         onUpdateRecord: (_, _) async {},
