@@ -17,7 +17,7 @@ jobs:
 
       - name: Create .env file
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
           if [ -z "$API_BASE_URL" ]; then
             echo "API_BASE_URL variable is required"
