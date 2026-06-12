@@ -7,9 +7,14 @@ import '../models/models.dart';
 import 'local_db.dart';
 
 class RecordService {
-  Future<List<OfflineRecord>> loadRecords() async {
+  Future<List<OfflineRecord>> loadRecords({String? userId}) async {
     final db = await LocalDb.open();
-    final rows = await db.query('records', orderBy: 'recorded_at DESC');
+    final rows = await db.query(
+      'records',
+      where: userId != null ? 'user_id = ?' : null,
+      whereArgs: userId != null ? [userId] : null,
+      orderBy: 'recorded_at DESC',
+    );
     return rows
         .map((row) => OfflineRecord.fromJson(Map<String, dynamic>.from(row)))
         .toList();

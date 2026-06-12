@@ -86,7 +86,9 @@ class _VivaJauhAppState extends State<VivaJauhApp> {
   }
 
   Future<void> _loadRecords() async {
-    final records = await _recordService.loadRecords();
+    final session = _session;
+    if (session == null) return;
+    final records = await _recordService.loadRecords(userId: session.userId);
     if (mounted) setState(() => _records = records);
   }
 
