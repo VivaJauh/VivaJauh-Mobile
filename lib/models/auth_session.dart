@@ -1,3 +1,10 @@
+String roleTitleOf(String role) => switch (role) {
+      'member' => 'Anggota',
+      'primary_admin' => 'Pengurus Primer',
+      'secondary_admin' => 'Pengurus Sekunder',
+      _ => role,
+    };
+
 class AuthSession {
   const AuthSession({
     required this.token,
@@ -20,6 +27,8 @@ class AuthSession {
   final String? tenantId;
   final String? koperasiName;
   final String? koperasiType;
+
+  String get roleTitle => roleTitleOf(role);
 
   factory AuthSession.fromJson(Map<String, dynamic> json) => AuthSession(
         token: json['token'] as String? ?? '',

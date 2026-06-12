@@ -74,7 +74,7 @@ class ProfilePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    session.role,
+                    session.roleTitle,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -100,7 +100,7 @@ class ProfilePage extends StatelessWidget {
                   _InfoRow(
                     icon: AppIcons.role,
                     label: 'Peran',
-                    value: session.role,
+                    value: session.roleTitle,
                   ),
                   const Divider(height: 1, color: AppColors.border),
                   _InfoRow(

@@ -633,7 +633,7 @@ class _AwaitingAdminCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Menunggu keputusan Secondary Admin. Koperasi sekunder berwenang menyetujui atau menolak setelah melihat rekap 12 bulan terakhir.',
+              'Menunggu keputusan Pengurus Sekunder. Koperasi sekunder berwenang menyetujui atau menolak setelah melihat rekap 12 bulan terakhir.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.warningDark,
                     fontWeight: FontWeight.w600,
