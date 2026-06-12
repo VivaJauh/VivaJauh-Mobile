@@ -2,6 +2,7 @@ export 'app_icons.dart';
 export 'app_theme.dart';
 export 'empty_state.dart';
 export 'form_fields.dart';
+export 'hbar_chart.dart';
 export 'offline_banner.dart';
 export 'record_tile.dart';
 export 'section_card.dart';
