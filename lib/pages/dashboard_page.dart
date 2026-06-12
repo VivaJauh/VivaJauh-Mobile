@@ -4,8 +4,13 @@ import '../models/models.dart';
 import '../widgets/widgets.dart';
 import 'feed_stock_page.dart';
 import 'home_page.dart';
+import 'koperasi_monitor_page.dart';
 import 'livestock_page.dart';
+import 'loan_applications_page.dart';
+import 'members_page.dart';
+import 'primary_home_page.dart';
 import 'profile_page.dart';
+import 'secondary_home_page.dart';
 import 'sync_queue_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -43,83 +48,155 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
 
-  @override
-  Widget build(BuildContext context) {
-    final pages = <Widget>[
-      HomePage(
-        session: widget.session,
-        records: widget.records,
-        syncing: widget.syncing,
-        online: widget.online,
-        onAddRecord: widget.onAddRecord,
-        onUpdateRecord: widget.onUpdateRecord,
-        onDeleteRecord: widget.onDeleteRecord,
-        onSync: widget.onSync,
-        onRefreshRecords: widget.onRefreshRecords,
-      ),
-      FeedStockPage(
-        session: widget.session,
-        records: widget.records,
-        online: widget.online,
-        onAddRecord: widget.onAddRecord,
-        onUpdateRecord: widget.onUpdateRecord,
-        onDeleteRecord: widget.onDeleteRecord,
-        onRefreshRecords: widget.onRefreshRecords,
-      ),
-      LivestockPage(
-        session: widget.session,
-        records: widget.records,
-        online: widget.online,
-        onAddRecord: widget.onAddRecord,
-        onUpdateRecord: widget.onUpdateRecord,
-        onDeleteRecord: widget.onDeleteRecord,
-        onRefreshRecords: widget.onRefreshRecords,
-      ),
-      SyncQueuePage(
-        records: widget.records,
-        syncing: widget.syncing,
-        online: widget.online,
-        onSync: widget.onSync,
-        onRetryRecord: widget.onRetryRecord,
-      ),
-      ProfilePage(
+  ProfilePage get _profilePage => ProfilePage(
         session: widget.session,
         onLogout: widget.onLogout,
-      ),
-    ];
+      );
+
+  List<Widget> get _memberPages => [
+        HomePage(
+          session: widget.session,
+          records: widget.records,
+          syncing: widget.syncing,
+          online: widget.online,
+          onAddRecord: widget.onAddRecord,
+          onUpdateRecord: widget.onUpdateRecord,
+          onDeleteRecord: widget.onDeleteRecord,
+          onSync: widget.onSync,
+          onRefreshRecords: widget.onRefreshRecords,
+        ),
+        FeedStockPage(
+          session: widget.session,
+          records: widget.records,
+          online: widget.online,
+          onAddRecord: widget.onAddRecord,
+          onUpdateRecord: widget.onUpdateRecord,
+          onDeleteRecord: widget.onDeleteRecord,
+          onRefreshRecords: widget.onRefreshRecords,
+        ),
+        LivestockPage(
+          session: widget.session,
+          records: widget.records,
+          online: widget.online,
+          onAddRecord: widget.onAddRecord,
+          onUpdateRecord: widget.onUpdateRecord,
+          onDeleteRecord: widget.onDeleteRecord,
+          onRefreshRecords: widget.onRefreshRecords,
+        ),
+        SyncQueuePage(
+          records: widget.records,
+          syncing: widget.syncing,
+          online: widget.online,
+          onSync: widget.onSync,
+          onRetryRecord: widget.onRetryRecord,
+        ),
+        _profilePage,
+      ];
+
+  static const _memberDestinations = [
+    NavigationDestination(
+      icon: Icon(AppIcons.navHome),
+      selectedIcon: Icon(AppIcons.navHomeActive),
+      label: 'Beranda',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navFeed),
+      selectedIcon: Icon(AppIcons.navFeedActive),
+      label: 'Pakan',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navLivestock),
+      selectedIcon: Icon(AppIcons.navLivestockActive),
+      label: 'Ternak',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navSync),
+      selectedIcon: Icon(AppIcons.navSyncActive),
+      label: 'Sinkronisasi',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navProfile),
+      selectedIcon: Icon(AppIcons.navProfileActive),
+      label: 'Profil',
+    ),
+  ];
+
+  List<Widget> get _primaryPages => [
+        PrimaryHomePage(session: widget.session, online: widget.online),
+        MembersPage(session: widget.session),
+        LoanApplicationsPage(session: widget.session, online: widget.online),
+        _profilePage,
+      ];
+
+  static const _primaryDestinations = [
+    NavigationDestination(
+      icon: Icon(AppIcons.navHome),
+      selectedIcon: Icon(AppIcons.navHomeActive),
+      label: 'Beranda',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navMembers),
+      selectedIcon: Icon(AppIcons.navMembersActive),
+      label: 'Anggota',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navLoan),
+      selectedIcon: Icon(AppIcons.navLoanActive),
+      label: 'Pinjaman',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navProfile),
+      selectedIcon: Icon(AppIcons.navProfileActive),
+      label: 'Profil',
+    ),
+  ];
+
+  List<Widget> get _secondaryPages => [
+        SecondaryHomePage(session: widget.session, online: widget.online),
+        LoanApplicationsPage(session: widget.session, online: widget.online),
+        KoperasiMonitorPage(session: widget.session),
+        _profilePage,
+      ];
+
+  static const _secondaryDestinations = [
+    NavigationDestination(
+      icon: Icon(AppIcons.navHome),
+      selectedIcon: Icon(AppIcons.navHomeActive),
+      label: 'Beranda',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navLoan),
+      selectedIcon: Icon(AppIcons.navLoanActive),
+      label: 'Pinjaman',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navKoperasi),
+      selectedIcon: Icon(AppIcons.navKoperasiActive),
+      label: 'Koperasi',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.navProfile),
+      selectedIcon: Icon(AppIcons.navProfileActive),
+      label: 'Profil',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final (pages, destinations) = switch (widget.session.role) {
+      'primary_admin' => (_primaryPages, _primaryDestinations),
+      'secondary_admin' => (_secondaryPages, _secondaryDestinations),
+      _ => (_memberPages, _memberDestinations),
+    };
+
+    final index = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: pages),
+      body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        selectedIndex: index,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(AppIcons.navHome),
-            selectedIcon: Icon(AppIcons.navHomeActive),
-            label: 'Beranda',
-          ),
-          NavigationDestination(
-            icon: Icon(AppIcons.navFeed),
-            selectedIcon: Icon(AppIcons.navFeedActive),
-            label: 'Pakan',
-          ),
-          NavigationDestination(
-            icon: Icon(AppIcons.navLivestock),
-            selectedIcon: Icon(AppIcons.navLivestockActive),
-            label: 'Ternak',
-          ),
-          NavigationDestination(
-            icon: Icon(AppIcons.navSync),
-            selectedIcon: Icon(AppIcons.navSyncActive),
-            label: 'Sinkronisasi',
-          ),
-          NavigationDestination(
-            icon: Icon(AppIcons.navProfile),
-            selectedIcon: Icon(AppIcons.navProfileActive),
-            label: 'Profil',
-          ),
-        ],
+        destinations: destinations,
       ),
     );
   }

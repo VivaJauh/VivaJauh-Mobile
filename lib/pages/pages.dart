@@ -22,6 +22,8 @@ export 'record_type_picker.dart';
 export 'records_page.dart';
 export 'reports_page.dart';
 export 'savings_loan_page.dart';
+export 'primary_home_page.dart';
 export 'profile_page.dart';
+export 'secondary_home_page.dart';
 export 'sync_queue_page.dart';
 export 'tenant_records_page.dart';
