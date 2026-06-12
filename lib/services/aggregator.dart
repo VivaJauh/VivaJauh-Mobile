@@ -214,6 +214,8 @@ class Aggregator {
           (repaymentsByMember[member] ?? 0) + amount;
     }
 
+    savingsByMember.removeWhere((_, v) => v <= 0);
+
     return SavingsLoanSummary(
       savingsBalance: deposits - withdrawals,
       totalDeposits: deposits,
