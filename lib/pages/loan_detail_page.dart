@@ -23,13 +23,29 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
   final _loanService = const LoanService();
 
   LoanApplication? _application;
+  LoanAuditTrail? _auditTrail;
   bool _loading = true;
   bool _analyzing = false;
   bool _deciding = false;
   String? _error;
 
-  bool _canDecide(LoanApplication app) =>
-      widget.session.role == 'secondary_admin';
+  bool get _isSecondaryAdmin => widget.session.role == 'secondary_admin';
+
+  bool _canDecide(LoanApplication app) => _isSecondaryAdmin;
+
+  Future<void> _loadAuditTrail() async {
+    if (!_isSecondaryAdmin) return;
+    try {
+      final trail = await _loanService.auditTrail(
+        widget.session,
+        widget.applicationId,
+      );
+      if (!mounted) return;
+      setState(() => _auditTrail = trail);
+    } catch (_) {
+      // Jejak audit bersifat pelengkap; kegagalan tidak memblokir detail.
+    }
+  }
 
   @override
   void initState() {
@@ -58,6 +74,7 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
         _loading = false;
         _analyzing = false;
       });
+      await _loadAuditTrail();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -90,6 +107,8 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
         _application = updated;
         _deciding = false;
       });
+      await _loadAuditTrail();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -203,6 +222,10 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
                         _DecisionResultCard(application: app)
                       else
                         const _AwaitingAdminCard(),
+                      if (_auditTrail != null) ...[
+                        const SizedBox(height: 12),
+                        _AuditTrailSection(trail: _auditTrail!),
+                      ],
                     ],
                   ),
                 ),
@@ -776,6 +799,159 @@ class _ReviewNoteSheetState extends State<_ReviewNoteSheet> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AuditTrailSection extends StatelessWidget {
+  const _AuditTrailSection({required this.trail});
+
+  final LoanAuditTrail trail;
+
+  IconData _actionIcon(String action) => switch (action) {
+        'loan_application_created' => AppIcons.add,
+        'loan_recommendation_generated' => AppIcons.ai,
+        'loan_application_approved' => AppIcons.approve,
+        'loan_application_rejected' => AppIcons.reject,
+        'loan_audit_report_exported' => AppIcons.export,
+        _ => AppIcons.records,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Jejak Audit',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              StatusBadge.custom(
+                label: trail.integrityValid
+                    ? 'Rantai Valid (${trail.checkedEntries})'
+                    : 'Integritas Rusak',
+                background: trail.integrityValid
+                    ? const Color(0xFFDCF5E8)
+                    : const Color(0xFFFFE4E1),
+                foreground: trail.integrityValid
+                    ? AppColors.successDark
+                    : AppColors.dangerDark,
+                icon: trail.integrityValid ? AppIcons.riskLow : AppIcons.riskHigh,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Append-only, setiap entri terikat hash SHA-256 ke entri sebelumnya.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.muted,
+                  fontSize: 11.5,
+                ),
+          ),
+          const SizedBox(height: 12),
+          if (trail.flags.isEmpty)
+            Row(
+              children: [
+                const Icon(
+                  AppIcons.verified,
+                  size: 15,
+                  color: AppColors.successDark,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tidak ada penanda mencurigakan.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.successDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: trail.flags
+                  .map(
+                    (flag) => StatusBadge.custom(
+                      label: loanFlagTitle(flag),
+                      background: const Color(0xFFFFF0C0),
+                      foreground: AppColors.warningDark,
+                      icon: AppIcons.warning,
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: 14),
+          for (final entry in trail.timeline) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _actionIcon(entry.action),
+                    size: 14,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.actionTitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'oleh ${entry.actorName} · ${AppFormats.dateShort(entry.createdAt)} ${AppFormats.time(entry.createdAt)}',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (entry.reviewNote != null &&
+                          entry.reviewNote!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Catatan: ${entry.reviewNote}',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (entry != trail.timeline.last) const SizedBox(height: 12),
+          ],
+        ],
+      ),
     );
   }
 }
