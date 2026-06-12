@@ -93,11 +93,12 @@ class _LoanApplyPageState extends State<LoanApplyPage> {
               ),
               const SizedBox(height: 14),
               LabeledTextField(
-                label: 'ID anggota',
+                label: 'NIK / ID anggota',
                 controller: _memberId,
                 required: false,
                 hint: 'Opsional',
-                helper: 'Isi jika anggota punya nomor keanggotaan',
+                helper:
+                    'NIK dipakai untuk mencocokkan riwayat anggota lintas koperasi',
               ),
               const SizedBox(height: 14),
               LabeledDropdown<String>(
@@ -161,7 +162,8 @@ class _CrossCheckInfoCard extends StatelessWidget {
           Expanded(
             child: Text(
               'Sistem akan memeriksa riwayat pinjaman anggota lintas koperasi '
-              'dan memberikan rekomendasi risiko. Keputusan akhir tetap di admin koperasi.',
+              'selama 12 bulan terakhir dan memberikan rekomendasi risiko. '
+              'Keputusan akhir tetap di secondary admin koperasi sekunder.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primaryDark,
                     fontSize: 12,
