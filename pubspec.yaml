@@ -38,12 +38,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -53,6 +49,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/logo_nobg.png
+    - assets/logo_withbg.png
   fonts:
     - family: PlusJakartaSans
       fonts:
@@ -66,3 +64,10 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
           weight: 800
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo_withbg.png"
+  adaptive_icon_foreground: "assets/logo_nobg.png"
+  adaptive_icon_background: "#FFFFFF"
