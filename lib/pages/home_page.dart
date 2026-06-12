@@ -4,8 +4,6 @@ import '../models/models.dart';
 import '../services/aggregator.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
-import 'koperasi_monitor_page.dart';
-import 'members_page.dart';
 import 'record_detail_page.dart';
 import 'record_form_page.dart';
 import 'records_page.dart';
@@ -150,49 +148,19 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          if (session.role == 'primary_admin') ...[
-            _RoleCta(
-              icon: AppIcons.members,
-              title: 'Data Anggota',
-              subtitle: 'Ringkasan & catatan anggota koperasi kamu',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MembersPage(session: session),
-                ),
-              ),
+          Text(
+            'Catat Sekarang',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
             ),
-            const SizedBox(height: 20),
-          ] else if (session.role == 'secondary_admin') ...[
-            _RoleCta(
-              icon: AppIcons.koperasi,
-              title: 'Monitoring Koperasi',
-              subtitle: 'Ringkasan & catatan 5 koperasi primer',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => KoperasiMonitorPage(session: session),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          if (session.role != 'secondary_admin') ...[
-            Text(
-              'Catat Sekarang',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _QuickActions(
-              session: session,
-              records: records,
-              onAddRecord: onAddRecord,
-            ),
-            const SizedBox(height: 20),
-          ],
+          ),
+          const SizedBox(height: 10),
+          _QuickActions(
+            session: session,
+            records: records,
+            onAddRecord: onAddRecord,
+          ),
+          const SizedBox(height: 20),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -348,83 +316,6 @@ class _ActionCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleCta extends StatelessWidget {
-  const _RoleCta({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$title. $subtitle',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.primary.withAlpha(70)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.primaryDark, size: 21),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryDark,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                AppIcons.chevronRight,
-                size: 14,
-                color: AppColors.primaryDark,
-              ),
-            ],
-          ),
         ),
       ),
     );
