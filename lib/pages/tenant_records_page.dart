@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../models/models.dart';
 import '../widgets/widgets.dart';
+import 'record_detail_page.dart';
 
 class TenantRecordsPage extends StatefulWidget {
   const TenantRecordsPage({
+    required this.session,
     required this.title,
     required this.subtitle,
     required this.loader,
     super.key,
   });
 
+  final AuthSession session;
   final String title;
   final String subtitle;
   final Future<List<OfflineRecord>> Function() loader;
@@ -90,7 +93,21 @@ class _TenantRecordsPageState extends State<TenantRecordsPage> {
               )
             else
               for (final record in _records) ...[
-                RecordTile(record: record),
+                RecordTile(
+                  record: record,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecordDetailPage(
+                        session: widget.session,
+                        record: record,
+                        readOnly: true,
+                        onUpdateRecord: (_, _) async {},
+                        onDeleteRecord: (_) async {},
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
               ],
           ],

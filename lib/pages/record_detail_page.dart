@@ -11,6 +11,7 @@ class RecordDetailPage extends StatelessWidget {
     required this.record,
     required this.onUpdateRecord,
     required this.onDeleteRecord,
+    this.readOnly = false,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class RecordDetailPage extends StatelessWidget {
   final OfflineRecord record;
   final Future<void> Function(RecordType, Map<String, dynamic>) onUpdateRecord;
   final Future<void> Function(OfflineRecord) onDeleteRecord;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +167,7 @@ class RecordDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          if (record.recordType != RecordType.correction) ...[
+          if (!readOnly && record.recordType != RecordType.correction) ...[
             OutlinedButton.icon(
               onPressed: () => _pushCorrection(context),
               icon: const Icon(AppIcons.correction, size: 18),

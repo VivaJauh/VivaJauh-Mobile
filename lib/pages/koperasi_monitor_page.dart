@@ -116,9 +116,10 @@ class _KoperasiMonitorPageState extends State<KoperasiMonitorPage> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => TenantRecordsPage(
+                        session: widget.session,
                         title: summary.koperasiName,
                         subtitle:
-                            'Catatan tersinkron ${summary.koperasiName} — akses sekunder tercatat.',
+                            'Catatan tersinkron ${summary.koperasiName}',
                         loader: () => _tenantService.tenantRecords(
                           widget.session,
                           summary.tenantId,

@@ -172,9 +172,10 @@ class _PrimaryHomePageState extends State<PrimaryHomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => TenantRecordsPage(
+                        session: widget.session,
                         title: member.name,
                         subtitle:
-                            'Catatan tersinkron milik ${member.name} — akses pengurus tercatat.',
+                            'Catatan tersinkron milik ${member.name}',
                         loader: () => _tenantService.memberRecords(
                           widget.session,
                           member.userId,
