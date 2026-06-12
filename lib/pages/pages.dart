@@ -1,4 +1,6 @@
+export 'dashboard_page.dart';
 export 'feed_stock_page.dart';
+export 'home_page.dart';
 export 'forms/daily_report_form.dart';
 export 'forms/feed_form.dart';
 export 'forms/form_shared.dart';

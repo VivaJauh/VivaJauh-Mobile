@@ -1,3 +1,4 @@
+export 'admin_service.dart';
 export 'aggregator.dart';
 export 'auth_service.dart';
 export 'local_db.dart';
