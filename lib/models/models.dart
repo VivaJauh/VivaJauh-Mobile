@@ -1,4 +1,5 @@
 export 'auth_session.dart';
+export 'fund_overview.dart';
 export 'loan_application.dart';
 export 'offline_record.dart';
 export 'payload_keys.dart';

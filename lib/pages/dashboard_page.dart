@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../widgets/widgets.dart';
 import 'feed_stock_page.dart';
+import 'fund_page.dart';
 import 'home_page.dart';
 import 'koperasi_monitor_page.dart';
 import 'livestock_page.dart';
@@ -90,6 +91,7 @@ class _DashboardPageState extends State<DashboardPage> {
           onSync: widget.onSync,
           onRetryRecord: widget.onRetryRecord,
         ),
+        FundPage(session: widget.session, online: widget.online),
         _profilePage,
       ];
 
@@ -115,6 +117,11 @@ class _DashboardPageState extends State<DashboardPage> {
       label: 'Sinkronisasi',
     ),
     NavigationDestination(
+      icon: Icon(AppIcons.savings),
+      selectedIcon: Icon(AppIcons.savings),
+      label: 'Dana',
+    ),
+    NavigationDestination(
       icon: Icon(AppIcons.navProfile),
       selectedIcon: Icon(AppIcons.navProfileActive),
       label: 'Profil',
@@ -124,6 +131,7 @@ class _DashboardPageState extends State<DashboardPage> {
   List<Widget> get _primaryPages => [
         PrimaryHomePage(session: widget.session, online: widget.online),
         MembersPage(session: widget.session),
+        FundPage(session: widget.session, online: widget.online),
         LoanApplicationsPage(session: widget.session, online: widget.online),
         _profilePage,
       ];
@@ -140,6 +148,11 @@ class _DashboardPageState extends State<DashboardPage> {
       label: 'Anggota',
     ),
     NavigationDestination(
+      icon: Icon(AppIcons.savings),
+      selectedIcon: Icon(AppIcons.savings),
+      label: 'Dana',
+    ),
+    NavigationDestination(
       icon: Icon(AppIcons.navLoan),
       selectedIcon: Icon(AppIcons.navLoanActive),
       label: 'Pinjaman',
@@ -153,6 +166,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   List<Widget> get _secondaryPages => [
         SecondaryHomePage(session: widget.session, online: widget.online),
+        FundPage(session: widget.session, online: widget.online),
         LoanApplicationsPage(session: widget.session, online: widget.online),
         KoperasiMonitorPage(session: widget.session),
         _profilePage,
@@ -163,6 +177,11 @@ class _DashboardPageState extends State<DashboardPage> {
       icon: Icon(AppIcons.navHome),
       selectedIcon: Icon(AppIcons.navHomeActive),
       label: 'Beranda',
+    ),
+    NavigationDestination(
+      icon: Icon(AppIcons.savings),
+      selectedIcon: Icon(AppIcons.savings),
+      label: 'Dana',
     ),
     NavigationDestination(
       icon: Icon(AppIcons.navLoan),
