@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/aggregator.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
+import 'loan_applications_page.dart';
 import 'record_detail_page.dart';
 import 'record_form_page.dart';
 
@@ -98,6 +99,18 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
                   color: AppColors.primary,
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            _LoanApplyCta(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LoanApplicationsPage(
+                    session: widget.session,
+                    online: widget.online,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             SegmentedButton<bool>(
@@ -207,6 +220,79 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
           session: widget.session,
           recordType: _fabType,
           onSave: widget.onAddRecord,
+        ),
+      ),
+    );
+  }
+}
+
+class _LoanApplyCta extends StatelessWidget {
+  const _LoanApplyCta({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Buka pengajuan pinjaman dengan analisis lintas koperasi',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.primary.withAlpha(70)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  AppIcons.loanApplication,
+                  color: AppColors.primaryDark,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pengajuan Pinjaman',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Analisis riwayat anggota lintas koperasi',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                AppIcons.chevronRight,
+                size: 14,
+                color: AppColors.primaryDark,
+              ),
+            ],
+          ),
         ),
       ),
     );
