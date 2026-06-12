@@ -59,6 +59,14 @@ class AppIcons {
   static const IconData chevronRight = PhosphorIconsBold.caretRight;
   static const IconData chevronDown = PhosphorIconsBold.caretDown;
   static const IconData arrowRight = PhosphorIconsBold.arrowRight;
+  static const IconData loanApplication = PhosphorIconsFill.bank;
+  static const IconData ai = PhosphorIconsFill.sparkle;
+  static const IconData riskLow = PhosphorIconsFill.shieldCheck;
+  static const IconData riskHigh = PhosphorIconsFill.shieldWarning;
+  static const IconData approve = PhosphorIconsBold.checkCircle;
+  static const IconData reject = PhosphorIconsBold.xCircle;
+  static const IconData tenure = PhosphorIconsRegular.calendarBlank;
+  static const IconData purpose = PhosphorIconsRegular.chatText;
   static const IconData refresh = PhosphorIconsBold.arrowsClockwise;
   static const IconData emptyInbox = PhosphorIconsFill.tray;
   static const IconData time = PhosphorIconsRegular.clock;
