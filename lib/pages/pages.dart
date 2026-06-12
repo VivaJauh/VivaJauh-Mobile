@@ -13,3 +13,5 @@ export 'record_detail_page.dart';
 export 'record_form_page.dart';
 export 'record_type_picker.dart';
 export 'records_page.dart';
+export 'reports_page.dart';
+export 'savings_loan_page.dart';
