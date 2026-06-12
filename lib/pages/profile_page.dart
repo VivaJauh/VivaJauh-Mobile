@@ -105,6 +105,15 @@ class ProfilePage extends StatelessWidget {
                   ),
                   const Divider(height: 1, color: AppColors.border),
                   _InfoRow(
+                    icon: AppIcons.koperasi,
+                    label: 'Koperasi',
+                    value: session.koperasiName ??
+                        (session.role == 'secondary_admin'
+                            ? 'Koperasi Sekunder'
+                            : 'Harapan Baru'),
+                  ),
+                  const Divider(height: 1, color: AppColors.border),
+                  _InfoRow(
                     icon: AppIcons.device,
                     label: 'Device ID',
                     value: session.deviceId,
