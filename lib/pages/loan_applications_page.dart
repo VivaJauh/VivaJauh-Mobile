@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/loan_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
+import 'loan_apply_page.dart';
 import 'loan_detail_page.dart';
 
 class LoanApplicationsPage extends StatefulWidget {
@@ -59,6 +60,30 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
       ? _items
       : _items.where((a) => a.status == _statusFilter).toList();
 
+  bool get _canApply => widget.session.role == 'member';
+
+  Future<void> _openApply() async {
+    final created = await Navigator.push<LoanApplication>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LoanApplyPage(session: widget.session),
+      ),
+    );
+    if (created == null || !mounted) return;
+    await _load();
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LoanDetailPage(
+          session: widget.session,
+          applicationId: created.id,
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
   Future<void> _openDetail(LoanApplication app) async {
     await Navigator.push(
       context,
@@ -85,6 +110,13 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
           ),
         ],
       ),
+      floatingActionButton: _canApply
+          ? FloatingActionButton(
+              onPressed: widget.online ? _openApply : null,
+              tooltip: 'Ajukan pinjaman baru',
+              child: const Icon(AppIcons.add),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: _load,
         color: AppColors.primary,
