@@ -807,15 +807,6 @@ class _AuditTrailSection extends StatelessWidget {
 
   final LoanAuditTrail trail;
 
-  IconData _actionIcon(String action) => switch (action) {
-        'loan_application_created' => AppIcons.add,
-        'loan_recommendation_generated' => AppIcons.ai,
-        'loan_application_approved' => AppIcons.approve,
-        'loan_application_rejected' => AppIcons.reject,
-        'loan_audit_report_exported' => AppIcons.export,
-        _ => AppIcons.records,
-      };
-
   @override
   Widget build(BuildContext context) {
     return SectionCard(
@@ -891,39 +882,131 @@ class _AuditTrailSection extends StatelessWidget {
                   .toList(),
             ),
           const SizedBox(height: 14),
-          for (final entry in trail.timeline) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(8),
+          for (final entry in trail.timeline)
+            _AuditTimelineEntry(
+              entry: entry,
+              isLast: entry == trail.timeline.last,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _auditActionColor(String action) => switch (action) {
+      'loan_application_approved' => AppColors.success,
+      'loan_application_rejected' => AppColors.danger,
+      'loan_recommendation_generated' => AppColors.secondary,
+      'loan_audit_report_exported' => AppColors.muted,
+      _ => AppColors.primary,
+    };
+
+Color _auditActionDarkColor(String action) => switch (action) {
+      'loan_application_approved' => AppColors.successDark,
+      'loan_application_rejected' => AppColors.dangerDark,
+      'loan_recommendation_generated' => AppColors.warningDark,
+      'loan_audit_report_exported' => AppColors.muted,
+      _ => AppColors.primaryDark,
+    };
+
+IconData _auditActionIcon(String action) => switch (action) {
+      'loan_application_created' => AppIcons.add,
+      'loan_recommendation_generated' => AppIcons.ai,
+      'loan_application_approved' => AppIcons.approve,
+      'loan_application_rejected' => AppIcons.reject,
+      'loan_audit_report_exported' => AppIcons.export,
+      _ => AppIcons.records,
+    };
+
+class _AuditTimelineEntry extends StatelessWidget {
+  const _AuditTimelineEntry({required this.entry, required this.isLast});
+
+  final LoanAuditEntry entry;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _auditActionColor(entry.action);
+    final darkColor = _auditActionDarkColor(entry.action);
+
+    return Semantics(
+      button: true,
+      label:
+          '${entry.actionTitle} oleh ${entry.actorName}, ketuk untuk detail',
+      child: InkWell(
+        onTap: () => _showDetail(context),
+        borderRadius: BorderRadius.circular(10),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(28),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: color.withAlpha(90)),
+                    ),
+                    child: Icon(
+                      _auditActionIcon(entry.action),
+                      size: 14,
+                      color: darkColor,
+                    ),
                   ),
-                  child: Icon(
-                    _actionIcon(entry.action),
-                    size: 14,
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                  if (!isLast)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        entry.actionTitle,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.text,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.actionTitle,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: darkColor,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            AppFormats.time(entry.createdAt),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            AppIcons.chevronRight,
+                            size: 11,
+                            color: AppColors.muted,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'oleh ${entry.actorName} · ${AppFormats.dateShort(entry.createdAt)} ${AppFormats.time(entry.createdAt)}',
+                        '${entry.actorName} · ${roleTitleOf(entry.actorRole)} · ${AppFormats.dateShort(entry.createdAt)}',
                         style: const TextStyle(
                           fontSize: 11.5,
                           color: AppColors.muted,
@@ -932,23 +1015,200 @@ class _AuditTrailSection extends StatelessWidget {
                       ),
                       if (entry.reviewNote != null &&
                           entry.reviewNote!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Catatan: ${entry.reviewNote}',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.text,
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '"${entry.reviewNote}"',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w500,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDetail(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: _AuditEntryDetailSheet(entry: entry),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuditEntryDetailSheet extends StatelessWidget {
+  const _AuditEntryDetailSheet({required this.entry});
+
+  final LoanAuditEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final darkColor = _auditActionDarkColor(entry.action);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _auditActionColor(entry.action).withAlpha(28),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _auditActionIcon(entry.action),
+                size: 19,
+                color: darkColor,
+              ),
             ),
-            if (entry != trail.timeline.last) const SizedBox(height: 12),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                entry.actionTitle,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: darkColor,
+                    ),
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 16),
+        _DetailRow(label: 'Pelaku', value: entry.actorName),
+        _DetailRow(label: 'Peran', value: roleTitleOf(entry.actorRole)),
+        _DetailRow(
+          label: 'Waktu',
+          value:
+              '${AppFormats.dateLong(entry.createdAt)} · ${AppFormats.time(entry.createdAt)} WIB',
+        ),
+        if (entry.resultStatus.isNotEmpty)
+          _DetailRow(label: 'Hasil', value: entry.resultStatus),
+        if (entry.riskLevel != null)
+          _DetailRow(
+            label: 'Tingkat risiko',
+            value: LoanRiskLevelX.fromApiValue(entry.riskLevel).title,
+          ),
+        if (entry.reviewNote != null && entry.reviewNote!.isNotEmpty)
+          _DetailRow(label: 'Catatan', value: entry.reviewNote!),
+        if (entry.reportHash != null)
+          _DetailRow(
+            label: 'Hash laporan',
+            value: entry.reportHash!,
+            monospace: true,
+          ),
+        if (entry.selfHash != null) ...[
+          const Divider(height: 24, color: AppColors.border),
+          Text(
+            'Sidik Jari Entri (SHA-256)',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.text,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: SelectableText(
+              entry.selfHash!,
+              style: const TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: AppColors.text,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Entri ini terikat secara kriptografis ke entri sebelumnya. '
+            'Perubahan sekecil apa pun akan merusak rantai dan terdeteksi.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.muted,
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.monospace = false,
+  });
+
+  final String label;
+  final String value;
+  final bool monospace;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.text,
+                fontWeight: FontWeight.w700,
+                fontFamily: monospace ? 'monospace' : null,
+              ),
+            ),
+          ),
         ],
       ),
     );

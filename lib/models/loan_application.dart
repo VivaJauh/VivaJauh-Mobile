@@ -103,14 +103,20 @@ class LoanAuditEntry {
     required this.action,
     required this.actorName,
     required this.actorRole,
+    required this.resultStatus,
     required this.reviewNote,
+    required this.selfHash,
+    required this.metadata,
     required this.createdAt,
   });
 
   final String action;
   final String actorName;
   final String actorRole;
+  final String resultStatus;
   final String? reviewNote;
+  final String? selfHash;
+  final Map<String, dynamic> metadata;
   final DateTime createdAt;
 
   String get actionTitle => switch (action) {
@@ -122,6 +128,10 @@ class LoanAuditEntry {
         _ => action,
       };
 
+  String? get riskLevel => metadata['risk_level'] as String?;
+  String? get newStatus => metadata['new_status'] as String?;
+  String? get reportHash => metadata['report_hash'] as String?;
+
   factory LoanAuditEntry.fromJson(Map<String, dynamic> json) {
     final metadata =
         Map<String, dynamic>.from(json['metadata'] as Map? ?? {});
@@ -129,7 +139,10 @@ class LoanAuditEntry {
       action: json['action'] as String? ?? '',
       actorName: json['actor_name'] as String? ?? 'Tidak dikenal',
       actorRole: json['actor_role'] as String? ?? 'unknown',
+      resultStatus: json['result_status'] as String? ?? '',
       reviewNote: metadata['review_note'] as String?,
+      selfHash: json['self_hash'] as String?,
+      metadata: metadata,
       createdAt:
           DateTime.tryParse(json['created_at'] as String? ?? '')?.toLocal() ??
               DateTime.now(),
