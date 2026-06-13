@@ -193,10 +193,23 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
       emit(
         state.copyWith(
           syncing: false,
-          notice: _notice('Sinkronisasi gagal: $e', isError: true),
+          notice: event.silent
+              ? state.notice
+              : _notice(_syncErrorMessage(e), isError: true),
         ),
       );
     }
+  }
+
+  String _syncErrorMessage(Object error) {
+    final text = error.toString();
+    if (text.contains('SocketException') ||
+        text.contains('Failed host lookup') ||
+        text.contains('ClientException') ||
+        text.contains('tidak bisa dihubungi')) {
+      return 'Sinkronisasi tertunda — tidak ada koneksi internet';
+    }
+    return 'Sinkronisasi gagal, akan dicoba lagi otomatis';
   }
 
   Future<void> _onConnectivityChanged(
