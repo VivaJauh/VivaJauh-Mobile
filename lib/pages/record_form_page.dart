@@ -92,11 +92,17 @@ class _RecordFormPageState extends State<RecordFormPage> {
           officer: officer,
           onSubmit: _onSubmit,
           initialPayload: initial,
+          populationByType: widget.records != null
+              ? Aggregator.computeLivestock(widget.records!).populationByType
+              : null,
         ),
       RecordType.savingsTransaction => SavingsForm(
           officer: officer,
           onSubmit: _onSubmit,
           initialPayload: initial,
+          balanceByMember: widget.records != null
+              ? Aggregator.computeSavingsLoan(widget.records!).savingsByMember
+              : null,
         ),
       RecordType.loanRepayment => LoanForm(
           officer: officer,

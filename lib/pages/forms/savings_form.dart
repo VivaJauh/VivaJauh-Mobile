@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/models.dart';
+import '../../utils/formats.dart';
 import '../../widgets/widgets.dart';
 import 'form_shared.dart';
 
@@ -10,6 +11,7 @@ class SavingsForm extends StatefulWidget {
     required this.onSubmit,
     this.initialPayload,
     this.initialDirection,
+    this.balanceByMember,
     super.key,
   });
 
@@ -17,6 +19,7 @@ class SavingsForm extends StatefulWidget {
   final PayloadSubmit onSubmit;
   final Map<String, dynamic>? initialPayload;
   final SavingsDirection? initialDirection;
+  final Map<String, double>? balanceByMember;
 
   @override
   State<SavingsForm> createState() => _SavingsFormState();
@@ -56,10 +59,59 @@ class _SavingsFormState extends State<SavingsForm> {
     super.dispose();
   }
 
+  bool get _isWithdrawal => _direction == SavingsDirection.tarik;
+
+  double get _currentBalance =>
+      widget.balanceByMember?[_memberCtrl.text.trim()] ?? 0;
+
+  String? get _amountHelper {
+    if (!_isWithdrawal || widget.balanceByMember == null) return null;
+    if (_memberCtrl.text.trim().isEmpty) return null;
+    return 'Saldo simpanan ${_memberCtrl.text.trim()}: '
+        '${AppFormats.rupiah(_currentBalance)}';
+  }
+
+  Future<bool> _confirmOverdraw(double balance, num amount) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Saldo Tidak Mencukupi'),
+        content: Text(
+          'Saldo simpanan ${_memberCtrl.text.trim()} tercatat hanya '
+          '${AppFormats.rupiah(balance)}, sedangkan kamu mencatat penarikan '
+          '${AppFormats.rupiah(amount)}.\n\n'
+          'Catatan tetap bisa disimpan, tapi saldo anggota ini akan minus '
+          'dan perlu dikoreksi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tetap Simpan'),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final amount = int.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) return;
+
+    if (widget.balanceByMember != null && _isWithdrawal) {
+      final balance = _currentBalance;
+      if (amount > balance && !await _confirmOverdraw(balance, amount)) return;
+    }
+    if (!mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -108,7 +160,11 @@ class _SavingsFormState extends State<SavingsForm> {
             hint: 'Nomor anggota (opsional)',
           ),
           const SizedBox(height: 16),
-          RupiahField(label: 'Jumlah', controller: _amountCtrl),
+          RupiahField(
+            label: 'Jumlah',
+            controller: _amountCtrl,
+            helper: _amountHelper,
+          ),
           const SizedBox(height: 16),
           NoteField(controller: _noteCtrl),
           const SizedBox(height: 24),

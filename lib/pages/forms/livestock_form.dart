@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/models.dart';
+import '../../utils/formats.dart';
 import '../../widgets/widgets.dart';
 import 'form_shared.dart';
 
@@ -9,12 +10,14 @@ class LivestockForm extends StatefulWidget {
     required this.officer,
     required this.onSubmit,
     this.initialPayload,
+    this.populationByType,
     super.key,
   });
 
   final String officer;
   final PayloadSubmit onSubmit;
   final Map<String, dynamic>? initialPayload;
+  final Map<String, double>? populationByType;
 
   @override
   State<LivestockForm> createState() => _LivestockFormState();
@@ -66,10 +69,64 @@ class _LivestockFormState extends State<LivestockForm> {
 
   String get _qtyLabel => _eventType.quantityIsKg ? 'Jumlah (kg)' : 'Jumlah (ekor)';
 
+  bool get _reducesPopulation =>
+      _eventType == LivestockEventType.pengurangan ||
+      _eventType == LivestockEventType.kematian;
+
+  bool get _addsPopulation => _eventType == LivestockEventType.penambahan;
+
+  double? get _currentPopulation => widget.populationByType?[_resolvedType] ?? 0;
+
+  String? get _qtyHelper {
+    if (_eventType.quantityIsKg) return null;
+    if (_addsPopulation) return 'Menambah populasi $_resolvedType';
+    if (_reducesPopulation) {
+      final current = _currentPopulation ?? 0;
+      return 'Mengurangi populasi · saat ini ${AppFormats.ekor(current)}';
+    }
+    return null;
+  }
+
+  Future<bool> _confirmOverdraw(double current, double qty) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Populasi Tidak Mencukupi'),
+        content: Text(
+          'Populasi $_resolvedType tercatat hanya ${AppFormats.ekor(current)}, '
+          'sedangkan kamu mencatat ${_eventType.label.toLowerCase()} ${AppFormats.ekor(qty)}.\n\n'
+          'Catatan tetap bisa disimpan, tapi populasi jenis ini akan minus '
+          'dan perlu dikoreksi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tetap Simpan'),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final qty = parseFlexibleNumber(_qtyCtrl.text);
     if (qty == null || qty <= 0) return;
+
+    if (widget.populationByType != null && _reducesPopulation) {
+      final current = _currentPopulation ?? 0;
+      if (qty > current && !await _confirmOverdraw(current, qty)) return;
+    }
+    if (!mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -126,6 +183,7 @@ class _LivestockFormState extends State<LivestockForm> {
             label: _qtyLabel,
             controller: _qtyCtrl,
             suffix: _eventType.quantityIsKg ? 'kg' : 'ekor',
+            helper: _qtyHelper,
           ),
           const SizedBox(height: 16),
           LabeledTextField(
