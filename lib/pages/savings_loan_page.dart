@@ -220,6 +220,7 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
           session: widget.session,
           recordType: _fabType,
           onSave: widget.onAddRecord,
+          records: widget.records,
         ),
       ),
     );

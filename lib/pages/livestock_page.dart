@@ -57,6 +57,7 @@ class _LivestockPageState extends State<LivestockPage> {
               session: widget.session,
               recordType: RecordType.livestockEvent,
               onSave: widget.onAddRecord,
+              records: widget.records,
             ),
           ),
         ),
