@@ -25,11 +25,13 @@ class LoanApplicationsPage extends StatelessWidget {
   const LoanApplicationsPage({
     required this.session,
     required this.online,
+    required this.onAddRecord,
     super.key,
   });
 
   final AuthSession session;
   final bool online;
+  final Future<void> Function(RecordType, Map<String, dynamic>) onAddRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -60,16 +62,25 @@ class LoanApplicationsPage extends StatelessWidget {
           repaymentMembers: repaymentMembers,
         );
       })..add(const FetchRequested()),
-      child: _LoanApplicationsView(session: session, online: online),
+      child: _LoanApplicationsView(
+        session: session,
+        online: online,
+        onAddRecord: onAddRecord,
+      ),
     );
   }
 }
 
 class _LoanApplicationsView extends StatefulWidget {
-  const _LoanApplicationsView({required this.session, required this.online});
+  const _LoanApplicationsView({
+    required this.session,
+    required this.online,
+    required this.onAddRecord,
+  });
 
   final AuthSession session;
   final bool online;
+  final Future<void> Function(RecordType, Map<String, dynamic>) onAddRecord;
 
   @override
   State<_LoanApplicationsView> createState() => _LoanApplicationsViewState();
@@ -90,11 +101,27 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
       widget.session.role == 'member' || widget.session.role == 'primary_admin';
 
   Future<void> _openApply() async {
-    final created = await Navigator.push<LoanApplication>(
+    final result = await Navigator.push<LoanApplyResult>(
       context,
-      MaterialPageRoute(builder: (_) => LoanApplyPage(session: widget.session)),
+      MaterialPageRoute(
+        builder: (_) => LoanApplyPage(
+          session: widget.session,
+          online: widget.online,
+          onSaveOffline: widget.onAddRecord,
+        ),
+      ),
     );
-    if (created == null || !mounted) return;
+    if (result == null || !mounted) return;
+    if (result.queued) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pengajuan disimpan di antrean sinkronisasi'),
+        ),
+      );
+      return;
+    }
+    final created = result.created;
+    if (created == null) return;
     await _refresh();
     if (!mounted) return;
     await Navigator.push(
@@ -121,7 +148,8 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<_LoanApplicationsData>>().state;
-    final showSpinner = state.data == null &&
+    final showSpinner =
+        state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
     final data =
@@ -134,68 +162,68 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
         : items.where((a) => a.status == _statusFilter).toList();
 
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Pengajuan Pinjaman'),
-          actions: [
-            IconButton(
-              onPressed: showSpinner ? null : _refresh,
-              tooltip: 'Muat ulang daftar',
-              icon: const Icon(AppIcons.refresh, size: 20),
+      appBar: AppBar(
+        title: const Text('Pengajuan Pinjaman'),
+        actions: [
+          IconButton(
+            onPressed: showSpinner ? null : _refresh,
+            tooltip: 'Muat ulang daftar',
+            icon: const Icon(AppIcons.refresh, size: 20),
+          ),
+        ],
+      ),
+      floatingActionButton: _canApply
+          ? FloatingActionButton(
+              onPressed: _openApply,
+              tooltip: 'Ajukan pinjaman baru',
+              child: const Icon(AppIcons.add),
+            )
+          : null,
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          children: [
+            if (!widget.online)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: OfflineBanner(online: false),
+              ),
+            _StatusFilterChips(
+              selected: _statusFilter,
+              onChanged: (value) => setState(() => _statusFilter = value),
             ),
+            const SizedBox(height: 12),
+            if (showSpinner)
+              const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (filtered.isEmpty)
+              const EmptyState(
+                icon: AppIcons.loanApplication,
+                title: 'Belum ada pengajuan',
+                message:
+                    'Belum ada pengajuan pinjaman baru. Riwayat cicilan anggota tampil di bawah jika tersedia.',
+              )
+            else
+              for (final app in filtered) ...[
+                _LoanTile(application: app, onTap: () => _openDetail(app)),
+                const SizedBox(height: 8),
+              ],
+            if (repaymentMembers.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _RepaymentMembersSection(
+                session: widget.session,
+                members: repaymentMembers,
+              ),
+            ],
           ],
         ),
-        floatingActionButton: _canApply
-            ? FloatingActionButton(
-                onPressed: widget.online ? _openApply : null,
-                tooltip: 'Ajukan pinjaman baru',
-                child: const Icon(AppIcons.add),
-              )
-            : null,
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          color: AppColors.primary,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-            children: [
-              if (!widget.online)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: OfflineBanner(online: false),
-                ),
-              _StatusFilterChips(
-                selected: _statusFilter,
-                onChanged: (value) => setState(() => _statusFilter = value),
-              ),
-              const SizedBox(height: 12),
-              if (showSpinner)
-                const Padding(
-                  padding: EdgeInsets.only(top: 80),
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                )
-              else if (filtered.isEmpty)
-                const EmptyState(
-                  icon: AppIcons.loanApplication,
-                  title: 'Belum ada pengajuan',
-                  message:
-                      'Belum ada pengajuan pinjaman baru. Riwayat cicilan anggota tampil di bawah jika tersedia.',
-                )
-              else
-                for (final app in filtered) ...[
-                  _LoanTile(application: app, onTap: () => _openDetail(app)),
-                  const SizedBox(height: 8),
-                ],
-              if (repaymentMembers.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _RepaymentMembersSection(
-                  session: widget.session,
-                  members: repaymentMembers,
-                ),
-              ],
-            ],
-          ),
-        ),
+      ),
     );
   }
 }

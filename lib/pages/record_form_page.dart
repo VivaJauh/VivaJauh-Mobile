@@ -20,9 +20,9 @@ class RecordFormPage extends StatefulWidget {
     this.records,
     super.key,
   }) : assert(
-          recordType != null || initialRecord != null,
-          'recordType or initialRecord must be provided',
-        );
+         recordType != null || initialRecord != null,
+         'recordType or initialRecord must be provided',
+       );
 
   final AuthSession session;
   final Future<void> Function(RecordType, Map<String, dynamic>) onSave;
@@ -81,48 +81,52 @@ class _RecordFormPageState extends State<RecordFormPage> {
     final initial = _initialPayload;
     return switch (_recordType) {
       RecordType.feedTransaction => FeedForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-          stockByType: widget.records != null
-              ? Aggregator.computeFeedStock(widget.records!).balanceByType
-              : null,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+        stockByType: widget.records != null
+            ? Aggregator.computeFeedStock(widget.records!).balanceByType
+            : null,
+      ),
       RecordType.livestockEvent => LivestockForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-          populationByType: widget.records != null
-              ? Aggregator.computeLivestock(widget.records!).populationByType
-              : null,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+        populationByType: widget.records != null
+            ? Aggregator.computeLivestock(widget.records!).populationByType
+            : null,
+      ),
       RecordType.savingsTransaction => SavingsForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-          balanceByMember: widget.records != null
-              ? Aggregator.computeSavingsLoan(widget.records!).savingsByMember
-              : null,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+        balanceByMember: widget.records != null
+            ? Aggregator.computeSavingsLoan(widget.records!).savingsByMember
+            : null,
+      ),
       RecordType.loanRepayment => LoanForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+      ),
+      RecordType.loanApplication => _CorrectionTextForm(
+        officer: officer,
+        onSubmit: _onSubmit,
+      ),
       RecordType.dailyReport => DailyReportForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+      ),
       RecordType.sellerCredit => SellerCreditForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-          initialPayload: initial,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+        initialPayload: initial,
+      ),
       RecordType.correction => _CorrectionTextForm(
-          officer: officer,
-          onSubmit: _onSubmit,
-        ),
+        officer: officer,
+        onSubmit: _onSubmit,
+      ),
     };
   }
 }
@@ -143,7 +147,11 @@ class _CorrectionBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(AppIcons.appendOnly, color: AppColors.warningDark, size: 18),
+          const Icon(
+            AppIcons.appendOnly,
+            color: AppColors.warningDark,
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

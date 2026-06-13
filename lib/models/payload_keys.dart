@@ -22,6 +22,12 @@ class PayloadKeys {
   static const memberId = 'member_id';
   static const savingsDirection = 'savings_direction';
   static const loanRef = 'loan_ref';
+  static const applicantName = 'applicant_name';
+  static const applicantMemberId = 'applicant_member_id';
+  static const targetKoperasi = 'target_koperasi';
+  static const requestedAmount = 'requested_amount';
+  static const purpose = 'purpose';
+  static const tenureMonths = 'tenure_months';
 
   static const issues = 'issues';
   static const items = 'items';
@@ -35,11 +41,11 @@ extension FeedDirectionX on FeedDirection {
   String get apiValue => name;
 
   String get label => switch (this) {
-        FeedDirection.masuk => 'Masuk',
-        FeedDirection.keluar => 'Keluar',
-        FeedDirection.rusak => 'Rusak',
-        FeedDirection.penyesuaian => 'Penyesuaian',
-      };
+    FeedDirection.masuk => 'Masuk',
+    FeedDirection.keluar => 'Keluar',
+    FeedDirection.rusak => 'Rusak',
+    FeedDirection.penyesuaian => 'Penyesuaian',
+  };
 
   static FeedDirection? tryParse(String? value) {
     for (final direction in FeedDirection.values) {
@@ -59,20 +65,20 @@ enum LivestockEventType {
 
 extension LivestockEventTypeX on LivestockEventType {
   String get apiValue => switch (this) {
-        LivestockEventType.penambahan => 'penambahan',
-        LivestockEventType.pengurangan => 'pengurangan',
-        LivestockEventType.kematian => 'kematian',
-        LivestockEventType.catatanKesehatan => 'catatan_kesehatan',
-        LivestockEventType.penggunaanPakan => 'penggunaan_pakan',
-      };
+    LivestockEventType.penambahan => 'penambahan',
+    LivestockEventType.pengurangan => 'pengurangan',
+    LivestockEventType.kematian => 'kematian',
+    LivestockEventType.catatanKesehatan => 'catatan_kesehatan',
+    LivestockEventType.penggunaanPakan => 'penggunaan_pakan',
+  };
 
   String get label => switch (this) {
-        LivestockEventType.penambahan => 'Penambahan',
-        LivestockEventType.pengurangan => 'Pengurangan',
-        LivestockEventType.kematian => 'Kematian',
-        LivestockEventType.catatanKesehatan => 'Catatan Kesehatan',
-        LivestockEventType.penggunaanPakan => 'Penggunaan Pakan',
-      };
+    LivestockEventType.penambahan => 'Penambahan',
+    LivestockEventType.pengurangan => 'Pengurangan',
+    LivestockEventType.kematian => 'Kematian',
+    LivestockEventType.catatanKesehatan => 'Catatan Kesehatan',
+    LivestockEventType.penggunaanPakan => 'Penggunaan Pakan',
+  };
 
   bool get quantityIsKg => this == LivestockEventType.penggunaanPakan;
 
@@ -90,9 +96,9 @@ extension SavingsDirectionX on SavingsDirection {
   String get apiValue => name;
 
   String get label => switch (this) {
-        SavingsDirection.setor => 'Setor',
-        SavingsDirection.tarik => 'Tarik',
-      };
+    SavingsDirection.setor => 'Setor',
+    SavingsDirection.tarik => 'Tarik',
+  };
 
   static SavingsDirection? tryParse(String? value) {
     for (final direction in SavingsDirection.values) {
@@ -215,6 +221,32 @@ class RecordPayloads {
     PayloadKeys.loanRef: loanRef.trim(),
   };
 
+  static Map<String, dynamic> loanApplication({
+    required String applicantName,
+    required String targetKoperasi,
+    required num requestedAmount,
+    required int tenureMonths,
+    String applicantMemberId = '',
+    String purpose = '',
+    required String officer,
+    DateTime? recordedAt,
+  }) => {
+    ..._base(
+      primary: applicantName,
+      quantity: requestedAmount,
+      secondary: targetKoperasi,
+      note: purpose,
+      officer: officer,
+      recordedAt: recordedAt,
+    ),
+    PayloadKeys.applicantName: applicantName.trim(),
+    PayloadKeys.applicantMemberId: applicantMemberId.trim(),
+    PayloadKeys.targetKoperasi: targetKoperasi.trim(),
+    PayloadKeys.requestedAmount: requestedAmount,
+    PayloadKeys.purpose: purpose.trim(),
+    PayloadKeys.tenureMonths: tenureMonths,
+  };
+
   static Map<String, dynamic> dailyReport({
     required String summary,
     String issues = '',
@@ -259,13 +291,11 @@ class PayloadReader {
 
   final Map<String, dynamic> payload;
 
-  String get primary =>
-      (payload[PayloadKeys.primary] as String?)?.trim() ?? '';
+  String get primary => (payload[PayloadKeys.primary] as String?)?.trim() ?? '';
   String get secondary =>
       (payload[PayloadKeys.secondary] as String?)?.trim() ?? '';
   String get note => (payload[PayloadKeys.note] as String?)?.trim() ?? '';
-  String get officer =>
-      (payload[PayloadKeys.officer] as String?)?.trim() ?? '';
+  String get officer => (payload[PayloadKeys.officer] as String?)?.trim() ?? '';
 
   num get quantity {
     final raw = payload[PayloadKeys.quantity];
@@ -285,13 +315,10 @@ class PayloadReader {
       (payload[PayloadKeys.warehouse] as String?)?.trim() ?? secondary;
 
   LivestockEventType get livestockEventType =>
-      LivestockEventTypeX.tryParse(
-        payload[PayloadKeys.eventType] as String?,
-      ) ??
+      LivestockEventTypeX.tryParse(payload[PayloadKeys.eventType] as String?) ??
       LivestockEventType.penambahan;
 
-  String get pen =>
-      (payload[PayloadKeys.pen] as String?)?.trim() ?? secondary;
+  String get pen => (payload[PayloadKeys.pen] as String?)?.trim() ?? secondary;
   String get healthNote =>
       (payload[PayloadKeys.healthNote] as String?)?.trim() ?? '';
 
@@ -305,6 +332,29 @@ class PayloadReader {
       (payload[PayloadKeys.memberId] as String?)?.trim() ?? '';
   String get loanRef =>
       (payload[PayloadKeys.loanRef] as String?)?.trim() ?? secondary;
+  String get applicantName =>
+      (payload[PayloadKeys.applicantName] as String?)?.trim() ?? primary;
+  String get applicantMemberId =>
+      (payload[PayloadKeys.applicantMemberId] as String?)?.trim() ?? '';
+  String get targetKoperasi =>
+      (payload[PayloadKeys.targetKoperasi] as String?)?.trim() ?? secondary;
+  num get requestedAmount {
+    final raw = payload[PayloadKeys.requestedAmount];
+    if (raw is num) return raw;
+    if (raw is String) return num.tryParse(raw) ?? quantity;
+    return quantity;
+  }
+
+  String get purpose =>
+      (payload[PayloadKeys.purpose] as String?)?.trim() ?? note;
+  int get tenureMonths {
+    final raw = payload[PayloadKeys.tenureMonths];
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
+
   String get issues =>
       (payload[PayloadKeys.issues] as String?)?.trim() ?? secondary;
   String get items =>

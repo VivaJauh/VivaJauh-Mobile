@@ -204,11 +204,15 @@ class RecordDetailPage extends StatelessWidget {
         rows.addAll([
           (label: 'Jenis Ternak', value: r.primary),
           (label: 'Kejadian', value: r.livestockEventType.label),
-          (label: 'Jumlah', value: r.livestockEventType.quantityIsKg
-              ? AppFormats.kg(r.quantity.toDouble())
-              : AppFormats.ekor(r.quantity.toDouble())),
+          (
+            label: 'Jumlah',
+            value: r.livestockEventType.quantityIsKg
+                ? AppFormats.kg(r.quantity.toDouble())
+                : AppFormats.ekor(r.quantity.toDouble()),
+          ),
           if (r.pen.isNotEmpty) (label: 'Kandang', value: r.pen),
-          if (r.healthNote.isNotEmpty) (label: 'Catatan Kesehatan', value: r.healthNote),
+          if (r.healthNote.isNotEmpty)
+            (label: 'Catatan Kesehatan', value: r.healthNote),
         ]);
       case RecordType.savingsTransaction:
         rows.addAll([
@@ -220,8 +224,25 @@ class RecordDetailPage extends StatelessWidget {
       case RecordType.loanRepayment:
         rows.addAll([
           (label: 'Anggota', value: r.primary),
-          (label: 'Jumlah Cicilan', value: AppFormats.rupiah(r.quantity.toDouble())),
+          (
+            label: 'Jumlah Cicilan',
+            value: AppFormats.rupiah(r.quantity.toDouble()),
+          ),
           if (r.loanRef.isNotEmpty) (label: 'Referensi', value: r.loanRef),
+        ]);
+      case RecordType.loanApplication:
+        rows.addAll([
+          (label: 'Pemohon', value: r.applicantName),
+          if (r.applicantMemberId.isNotEmpty)
+            (label: 'ID Anggota', value: r.applicantMemberId),
+          (label: 'Koperasi Tujuan', value: r.targetKoperasi),
+          (
+            label: 'Jumlah Pinjaman',
+            value: AppFormats.rupiah(r.requestedAmount.toDouble()),
+          ),
+          if (r.tenureMonths > 0)
+            (label: 'Tenor', value: '${r.tenureMonths} bulan'),
+          if (r.purpose.isNotEmpty) (label: 'Tujuan', value: r.purpose),
         ]);
       case RecordType.dailyReport:
         rows.addAll([
@@ -302,17 +323,17 @@ class RecordDetailPage extends StatelessWidget {
               Text(
                 'Ajukan Penghapusan',
                 textAlign: TextAlign.center,
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
                 'Penghapusan akan diajukan sebagai koreksi dan perlu diverifikasi admin.',
                 textAlign: TextAlign.center,
-                style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                ),
+                style: Theme.of(
+                  ctx,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -340,7 +361,11 @@ class RecordDetailPage extends StatelessWidget {
 }
 
 class _TimeRow extends StatelessWidget {
-  const _TimeRow({required this.icon, required this.label, required this.value});
+  const _TimeRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;

@@ -36,6 +36,7 @@ class AppRecordStyle {
     RecordType.livestockEvent => AppIcons.livestock,
     RecordType.savingsTransaction => AppIcons.savings,
     RecordType.loanRepayment => AppIcons.loan,
+    RecordType.loanApplication => AppIcons.loanApplication,
     RecordType.dailyReport => AppIcons.dailyReport,
     RecordType.sellerCredit => AppIcons.sellerCredit,
     RecordType.correction => AppIcons.correction,
@@ -99,8 +100,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.danger),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         labelStyle: const TextStyle(color: AppColors.muted),
         helperStyle: const TextStyle(color: AppColors.muted, fontSize: 12),
       ),

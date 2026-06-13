@@ -110,6 +110,7 @@ class RecordTile extends StatelessWidget {
       RecordType.livestockEvent => AppFormats.ekor(qty.toDouble()),
       RecordType.savingsTransaction ||
       RecordType.loanRepayment ||
+      RecordType.loanApplication ||
       RecordType.sellerCredit => AppFormats.rupiah(qty.toDouble()),
       _ => null,
     };

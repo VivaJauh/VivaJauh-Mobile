@@ -130,7 +130,11 @@ class _DashboardPageState extends State<DashboardPage> {
     PrimaryHomePage(session: widget.session, online: widget.online),
     MembersPage(session: widget.session),
     FundPage(session: widget.session, online: widget.online),
-    LoanApplicationsPage(session: widget.session, online: widget.online),
+    LoanApplicationsPage(
+      session: widget.session,
+      online: widget.online,
+      onAddRecord: widget.onAddRecord,
+    ),
     _profilePage,
   ];
 
@@ -165,7 +169,11 @@ class _DashboardPageState extends State<DashboardPage> {
   List<Widget> get _secondaryPages => [
     SecondaryHomePage(session: widget.session, online: widget.online),
     FundPage(session: widget.session, online: widget.online),
-    LoanApplicationsPage(session: widget.session, online: widget.online),
+    LoanApplicationsPage(
+      session: widget.session,
+      online: widget.online,
+      onAddRecord: widget.onAddRecord,
+    ),
     KoperasiMonitorPage(session: widget.session),
     _profilePage,
   ];

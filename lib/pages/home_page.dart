@@ -69,156 +69,156 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             OfflineBanner(online: online, pendingCount: _pendingCount),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      greeting,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w600,
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        greeting,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        session.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.text,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_pendingCount > 0 && online)
+                  IconButton.filled(
+                    onPressed: syncing ? null : onSync,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primaryLight,
+                      foregroundColor: AppColors.primaryDark,
+                    ),
+                    icon: syncing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.primaryDark,
+                            ),
+                          )
+                        : const Icon(AppIcons.sync, size: 20),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            StatCardRow(
+              children: [
+                StatCard(
+                  icon: AppIcons.feed,
+                  value: AppFormats.kg(feedSummary.totalBalanceKg),
+                  label: 'Stok Pakan',
+                  color: AppColors.primary,
+                ),
+                StatCard(
+                  icon: AppIcons.livestock,
+                  value: AppFormats.ekor(livestockSummary.totalPopulation),
+                  label: 'Jumlah Ternak',
+                  color: AppColors.secondary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            StatCardRow(
+              children: [
+                StatCard(
+                  icon: AppIcons.pending,
+                  value: '$_pendingCount',
+                  label: 'Menunggu Sync',
+                  color: AppColors.warning,
+                ),
+                StatCard(
+                  icon: AppIcons.synced,
+                  value:
+                      '${records.where((r) => r.syncStatus == SyncStatus.synced).length}',
+                  label: 'Tersinkron',
+                  color: AppColors.success,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            Text(
+              'Catat Sekarang',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            _QuickActions(
+              session: session,
+              records: records,
+              onAddRecord: onAddRecord,
+              online: online,
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Aktivitas Terbaru',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecordsPage(
+                        session: session,
+                        records: records,
+                        onAddRecord: onAddRecord,
+                        onUpdateRecord: onUpdateRecord,
+                        onDeleteRecord: onDeleteRecord,
+                        onRefreshRecords: onRefreshRecords,
                       ),
                     ),
-                    Text(
-                      session.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.text,
-                        fontSize: 22,
+                  ),
+                  child: const Text('Lihat semua'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (_recent.isEmpty)
+              EmptyState(
+                icon: AppIcons.emptyInbox,
+                title: 'Belum ada catatan',
+                message:
+                    'Mulai catat transaksi pakan, kejadian ternak, atau laporan harian.',
+              )
+            else
+              for (final record in _recent) ...[
+                RecordTile(
+                  record: record,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecordDetailPage(
+                        session: session,
+                        record: record,
+                        onUpdateRecord: onUpdateRecord,
+                        onDeleteRecord: onDeleteRecord,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              if (_pendingCount > 0 && online)
-                IconButton.filled(
-                  onPressed: syncing ? null : onSync,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primaryLight,
-                    foregroundColor: AppColors.primaryDark,
-                  ),
-                  icon: syncing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: AppColors.primaryDark,
-                          ),
-                        )
-                      : const Icon(AppIcons.sync, size: 20),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          StatCardRow(
-            children: [
-              StatCard(
-                icon: AppIcons.feed,
-                value: AppFormats.kg(feedSummary.totalBalanceKg),
-                label: 'Stok Pakan',
-                color: AppColors.primary,
-              ),
-              StatCard(
-                icon: AppIcons.livestock,
-                value: AppFormats.ekor(livestockSummary.totalPopulation),
-                label: 'Jumlah Ternak',
-                color: AppColors.secondary,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          StatCardRow(
-            children: [
-              StatCard(
-                icon: AppIcons.pending,
-                value: '$_pendingCount',
-                label: 'Menunggu Sync',
-                color: AppColors.warning,
-              ),
-              StatCard(
-                icon: AppIcons.synced,
-                value:
-                    '${records.where((r) => r.syncStatus == SyncStatus.synced).length}',
-                label: 'Tersinkron',
-                color: AppColors.success,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          Text(
-            'Catat Sekarang',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          _QuickActions(
-            session: session,
-            records: records,
-            onAddRecord: onAddRecord,
-            online: online,
-          ),
-          const SizedBox(height: 20),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Aktivitas Terbaru',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RecordsPage(
-                      session: session,
-                      records: records,
-                      onAddRecord: onAddRecord,
-                      onUpdateRecord: onUpdateRecord,
-                      onDeleteRecord: onDeleteRecord,
-                      onRefreshRecords: onRefreshRecords,
-                    ),
                   ),
                 ),
-                child: const Text('Lihat semua'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          if (_recent.isEmpty)
-            EmptyState(
-              icon: AppIcons.emptyInbox,
-              title: 'Belum ada catatan',
-              message:
-                  'Mulai catat transaksi pakan, kejadian ternak, atau laporan harian.',
-            )
-          else
-            for (final record in _recent) ...[
-              RecordTile(
-                record: record,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RecordDetailPage(
-                      session: session,
-                      record: record,
-                      onUpdateRecord: onUpdateRecord,
-                      onDeleteRecord: onDeleteRecord,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+                const SizedBox(height: 8),
+              ],
           ],
         ),
       ),
@@ -280,8 +280,11 @@ class _QuickActions extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  LoanApplicationsPage(session: session, online: online),
+              builder: (_) => LoanApplicationsPage(
+                session: session,
+                online: online,
+                onAddRecord: onAddRecord,
+              ),
             ),
           ),
         ),

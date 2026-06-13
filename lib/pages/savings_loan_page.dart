@@ -108,6 +108,7 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
                   builder: (_) => LoanApplicationsPage(
                     session: widget.session,
                     online: widget.online,
+                    onAddRecord: widget.onAddRecord,
                   ),
                 ),
               ),
@@ -127,17 +128,18 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
                 child: HBarChart(
                   title: 'Saldo per Anggota',
                   unit: '',
-                  items: (summary.savingsByMember.entries.toList()
-                        ..sort((a, b) => b.value.compareTo(a.value)))
-                      .take(8)
-                      .map(
-                        (e) => HBarItem(
-                          label: e.key,
-                          value: e.value,
-                          color: AppColors.primary,
-                        ),
-                      )
-                      .toList(),
+                  items:
+                      (summary.savingsByMember.entries.toList()
+                            ..sort((a, b) => b.value.compareTo(a.value)))
+                          .take(8)
+                          .map(
+                            (e) => HBarItem(
+                              label: e.key,
+                              value: e.value,
+                              color: AppColors.primary,
+                            ),
+                          )
+                          .toList(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -147,26 +149,27 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
                 child: HBarChart(
                   title: 'Cicilan per Anggota',
                   unit: '',
-                  items: (summary.repaymentsByMember.entries.toList()
-                        ..sort((a, b) => b.value.compareTo(a.value)))
-                      .take(8)
-                      .map(
-                        (e) => HBarItem(
-                          label: e.key,
-                          value: e.value,
-                          color: AppColors.secondary,
-                        ),
-                      )
-                      .toList(),
+                  items:
+                      (summary.repaymentsByMember.entries.toList()
+                            ..sort((a, b) => b.value.compareTo(a.value)))
+                          .take(8)
+                          .map(
+                            (e) => HBarItem(
+                              label: e.key,
+                              value: e.value,
+                              color: AppColors.secondary,
+                            ),
+                          )
+                          .toList(),
                 ),
               ),
               const SizedBox(height: 16),
             ],
             Text(
               _loanTab ? 'Riwayat Cicilan' : 'Riwayat Simpanan',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
             ..._historyList(
@@ -326,7 +329,10 @@ class _SavingsHeroCard extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'Total Saldo Simpanan',
-                style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 13),
+                style: TextStyle(
+                  color: Colors.white.withAlpha(200),
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
