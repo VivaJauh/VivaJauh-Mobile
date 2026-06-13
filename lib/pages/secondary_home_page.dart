@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
 import '../services/tenant_service.dart';
@@ -7,7 +9,9 @@ import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 import 'loan_detail_page.dart';
 
-class SecondaryHomePage extends StatefulWidget {
+typedef _SecondaryHomeData = (List<KoperasiSummary>, List<LoanApplication>);
+
+class SecondaryHomePage extends StatelessWidget {
   const SecondaryHomePage({
     required this.session,
     required this.online,
@@ -18,63 +22,60 @@ class SecondaryHomePage extends StatefulWidget {
   final bool online;
 
   @override
-  State<SecondaryHomePage> createState() => _SecondaryHomePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<_SecondaryHomeData>(() async {
+        final results = await Future.wait<Object>([
+          const TenantService().koperasiSummaries(session),
+          const LoanService()
+              .list(session, status: LoanStatus.pendingReview),
+        ]);
+        return (
+          results[0] as List<KoperasiSummary>,
+          results[1] as List<LoanApplication>,
+        );
+      })
+        ..add(const FetchRequested()),
+      child: _SecondaryHomeView(session: session, online: online),
+    );
+  }
 }
 
-class _SecondaryHomePageState extends State<SecondaryHomePage> {
-  final _tenantService = const TenantService();
-  final _loanService = const LoanService();
+class _SecondaryHomeView extends StatelessWidget {
+  const _SecondaryHomeView({required this.session, required this.online});
 
-  List<KoperasiSummary> _summaries = [];
-  List<LoanApplication> _pendingReview = [];
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
+  final bool online;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait([
-        _tenantService.koperasiSummaries(widget.session),
-        _loanService.list(widget.session, status: LoanStatus.pendingReview),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _summaries = results[0] as List<KoperasiSummary>;
-        _pendingReview = results[1] as List<LoanApplication>;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<_SecondaryHomeData>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<FetchBloc<_SecondaryHomeData>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final summaries = state.data?.$1 ?? const <KoperasiSummary>[];
+    final pendingReview = state.data?.$2 ?? const <LoanApplication>[];
     final totalMembers =
-        _summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
+        summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
     final totalSavings =
-        _summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
+        summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => _refresh(context),
       color: AppColors.primary,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          if (!widget.online) const OfflineBanner(online: false),
+          if (!online) const OfflineBanner(online: false),
           Text(
             'Pengurus Sekunder',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -83,7 +84,7 @@ class _SecondaryHomePageState extends State<SecondaryHomePage> {
                 ),
           ),
           Text(
-            widget.session.koperasiName ?? widget.session.name,
+            session.koperasiName ?? session.name,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.text,
@@ -91,25 +92,25 @@ class _SecondaryHomePageState extends State<SecondaryHomePage> {
                 ),
           ),
           const SizedBox(height: 16),
-          if (_loading)
+          if (loading)
             const Padding(
               padding: EdgeInsets.only(top: 80),
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             )
-          else if (_error != null)
+          else if (error != null)
             EmptyState(
               icon: AppIcons.warning,
               title: 'Gagal memuat',
-              message: _error!,
+              message: error,
             )
           else ...[
             StatCardRow(
               children: [
                 StatCard(
                   icon: AppIcons.koperasi,
-                  value: '${_summaries.length}',
+                  value: '${summaries.length}',
                   label: 'Koperasi Primer',
                   color: AppColors.primary,
                 ),
@@ -132,7 +133,7 @@ class _SecondaryHomePageState extends State<SecondaryHomePage> {
                 ),
                 StatCard(
                   icon: AppIcons.pending,
-                  value: '${_pendingReview.length}',
+                  value: '${pendingReview.length}',
                   label: 'Menunggu Review',
                   color: AppColors.warning,
                 ),
@@ -140,13 +141,13 @@ class _SecondaryHomePageState extends State<SecondaryHomePage> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Antrian Keputusan (${_pendingReview.length})',
+              'Antrian Keputusan (${pendingReview.length})',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
             const SizedBox(height: 10),
-            if (_pendingReview.isEmpty)
+            if (pendingReview.isEmpty)
               const EmptyState(
                 icon: AppIcons.approve,
                 title: 'Tidak ada antrian',
@@ -154,20 +155,22 @@ class _SecondaryHomePageState extends State<SecondaryHomePage> {
                     'Semua pengajuan pinjaman sudah diputuskan. Kerja bagus!',
               )
             else
-              for (final app in _pendingReview) ...[
+              for (final app in pendingReview) ...[
                 _ReviewQueueTile(
                   application: app,
                   onTap: () async {
+                    final bloc =
+                        context.read<FetchBloc<_SecondaryHomeData>>();
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => LoanDetailPage(
-                          session: widget.session,
+                          session: session,
                           applicationId: app.id,
                         ),
                       ),
                     );
-                    if (mounted) _load();
+                    if (!bloc.isClosed) bloc.add(const FetchRequested());
                   },
                 ),
                 const SizedBox(height: 8),

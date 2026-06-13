@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
 import '../utils/formats.dart';
@@ -7,7 +9,7 @@ import '../widgets/widgets.dart';
 import 'loan_apply_page.dart';
 import 'loan_detail_page.dart';
 
-class LoanApplicationsPage extends StatefulWidget {
+class LoanApplicationsPage extends StatelessWidget {
   const LoanApplicationsPage({
     required this.session,
     required this.online,
@@ -18,47 +20,35 @@ class LoanApplicationsPage extends StatefulWidget {
   final bool online;
 
   @override
-  State<LoanApplicationsPage> createState() => _LoanApplicationsPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<List<LoanApplication>>(
+        () => const LoanService().list(session),
+      )..add(const FetchRequested()),
+      child: _LoanApplicationsView(session: session, online: online),
+    );
+  }
 }
 
-class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
-  final _loanService = const LoanService();
+class _LoanApplicationsView extends StatefulWidget {
+  const _LoanApplicationsView({required this.session, required this.online});
 
-  List<LoanApplication> _items = [];
-  LoanStatus? _statusFilter;
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
+  final bool online;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  State<_LoanApplicationsView> createState() => _LoanApplicationsViewState();
+}
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final items = await _loanService.list(widget.session);
-      if (!mounted) return;
-      setState(() {
-        _items = items;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
-  }
+class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
+  LoanStatus? _statusFilter;
 
-  List<LoanApplication> get _filtered => _statusFilter == null
-      ? _items
-      : _items.where((a) => a.status == _statusFilter).toList();
+  Future<void> _refresh() {
+    final bloc = context.read<FetchBloc<List<LoanApplication>>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
+  }
 
   bool get _canApply => widget.session.role == 'member';
 
@@ -70,7 +60,7 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
       ),
     );
     if (created == null || !mounted) return;
-    await _load();
+    await _refresh();
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -81,7 +71,7 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
         ),
       ),
     );
-    if (mounted) await _load();
+    if (mounted) await _refresh();
   }
 
   Future<void> _openDetail(LoanApplication app) async {
@@ -94,32 +84,42 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
         ),
       ),
     );
-    if (mounted) await _load();
+    if (mounted) await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<FetchBloc<List<LoanApplication>>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final items = state.data ?? const <LoanApplication>[];
+    final filtered = _statusFilter == null
+        ? items
+        : items.where((a) => a.status == _statusFilter).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pengajuan Pinjaman'),
         actions: [
           IconButton(
-            onPressed: _loading ? null : _load,
+            onPressed: loading ? null : _refresh,
             tooltip: 'Muat ulang daftar',
             icon: const Icon(AppIcons.refresh, size: 20),
           ),
         ],
       ),
       floatingActionButton: _canApply
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: widget.online ? _openApply : null,
               tooltip: 'Ajukan pinjaman baru',
-              icon: const Icon(AppIcons.add),
-              label: const Text('Ajukan'),
+              child: const Icon(AppIcons.add),
             )
           : null,
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: _refresh,
         color: AppColors.primary,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
@@ -134,29 +134,27 @@ class _LoanApplicationsPageState extends State<LoanApplicationsPage> {
               onChanged: (value) => setState(() => _statusFilter = value),
             ),
             const SizedBox(height: 12),
-            if (_loading)
+            if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
-            else if (_error != null)
+            else if (error != null)
               EmptyState(
                 icon: AppIcons.warning,
                 title: 'Gagal memuat',
-                message: _error!,
+                message: error,
               )
-            else if (_filtered.isEmpty)
-              EmptyState(
+            else if (filtered.isEmpty)
+              const EmptyState(
                 icon: AppIcons.loanApplication,
                 title: 'Belum ada pengajuan',
-                message: _canApply
-                    ? 'Ajukan pinjaman anggota untuk dianalisis riwayatnya lintas koperasi.'
-                    : 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
+                message: 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
               )
             else
-              for (final app in _filtered) ...[
+              for (final app in filtered) ...[
                 _LoanTile(application: app, onTap: () => _openDetail(app)),
                 const SizedBox(height: 8),
               ],

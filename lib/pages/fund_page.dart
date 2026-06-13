@@ -1,63 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/fund_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 
-class FundPage extends StatefulWidget {
+class FundPage extends StatelessWidget {
   const FundPage({required this.session, required this.online, super.key});
 
   final AuthSession session;
   final bool online;
 
   @override
-  State<FundPage> createState() => _FundPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<FundOverview>(
+        () => const FundService().overview(session),
+      )..add(const FetchRequested()),
+      child: _FundView(session: session, online: online),
+    );
+  }
 }
 
-class _FundPageState extends State<FundPage> {
-  final _fundService = const FundService();
+class _FundView extends StatelessWidget {
+  const _FundView({required this.session, required this.online});
 
-  FundOverview? _overview;
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
+  final bool online;
 
-  bool get _canRecord => widget.session.role == 'primary_admin';
+  bool get _canRecord => session.role == 'primary_admin';
 
-  String get _title => switch (widget.session.role) {
+  String get _title => switch (session.role) {
         'primary_admin' => 'Dana Anggota',
         'secondary_admin' => 'Monitoring Dana',
         _ => 'Dana Saya',
       };
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<FundOverview>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final overview = await _fundService.overview(widget.session);
-      if (!mounted) return;
-      setState(() {
-        _overview = overview;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _recordPayment(FundItem item) async {
+  Future<void> _recordPayment(BuildContext context, FundItem item) async {
+    final bloc = context.read<FetchBloc<FundOverview>>();
+    final messenger = ScaffoldMessenger.of(context);
     final result = await showModalBottomSheet<_PaymentInput>(
       context: context,
       isScrollControlled: true,
@@ -66,28 +56,26 @@ class _FundPageState extends State<FundPage> {
       ),
       builder: (_) => _PaymentSheet(item: item),
     );
-    if (result == null || !mounted) return;
+    if (result == null) return;
 
     try {
-      await _fundService.recordPayment(
-        widget.session,
+      await const FundService().recordPayment(
+        session,
         memberId: item.memberId,
         fundType: item.fundType,
         periodKey: item.periodKey,
         amount: result.amount,
         note: result.note,
       );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Pembayaran dana berhasil dicatat'),
           backgroundColor: AppColors.success,
         ),
       );
-      await _load();
+      if (!bloc.isClosed) bloc.add(const FetchRequested());
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
           backgroundColor: AppColors.danger,
@@ -98,42 +86,48 @@ class _FundPageState extends State<FundPage> {
 
   @override
   Widget build(BuildContext context) {
-    final overview = _overview;
+    final state = context.watch<FetchBloc<FundOverview>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final overview = state.data;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
         actions: [
           IconButton(
-            onPressed: _loading ? null : _load,
+            onPressed: loading ? null : () => _refresh(context),
             tooltip: 'Muat ulang dana',
             icon: const Icon(AppIcons.refresh, size: 20),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            if (!widget.online)
+            if (!online)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: OfflineBanner(online: false),
               ),
-            if (_loading)
+            if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
-            else if (_error != null)
+            else if (error != null)
               EmptyState(
                 icon: AppIcons.warning,
                 title: 'Gagal memuat',
-                message: _error!,
+                message: error,
               )
             else if (overview == null)
               const EmptyState(
@@ -149,7 +143,7 @@ class _FundPageState extends State<FundPage> {
                   StatCard(
                     icon: AppIcons.members,
                     value: '${overview.totals.memberCount}',
-                    label: widget.session.role == 'member'
+                    label: session.role == 'member'
                         ? 'Akun'
                         : 'Anggota',
                     color: AppColors.primary,
@@ -187,7 +181,7 @@ class _FundPageState extends State<FundPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                widget.session.role == 'member'
+                session.role == 'member'
                     ? 'Kewajiban Saya'
                     : 'Daftar Kewajiban',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -205,11 +199,11 @@ class _FundPageState extends State<FundPage> {
                 for (final item in overview.items) ...[
                   _FundTile(
                     item: item,
-                    showTenant: widget.session.role == 'secondary_admin',
+                    showTenant: session.role == 'secondary_admin',
                     canRecord: _canRecord &&
                         item.hasOutstanding &&
-                        widget.online,
-                    onRecord: () => _recordPayment(item),
+                        online,
+                    onRecord: () => _recordPayment(context, item),
                   ),
                   const SizedBox(height: 8),
                 ],

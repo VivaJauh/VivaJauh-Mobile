@@ -1,93 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/tenant_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 import 'tenant_records_page.dart';
 
-class MembersPage extends StatefulWidget {
+class MembersPage extends StatelessWidget {
   const MembersPage({required this.session, super.key});
 
   final AuthSession session;
 
   @override
-  State<MembersPage> createState() => _MembersPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => FetchBloc<List<MemberSummary>>(
+        () => const TenantService().members(session),
+      )..add(const FetchRequested()),
+      child: _MembersView(session: session),
+    );
+  }
 }
 
-class _MembersPageState extends State<MembersPage> {
-  final _tenantService = const TenantService();
+class _MembersView extends StatelessWidget {
+  const _MembersView({required this.session});
 
-  List<MemberSummary> _members = [];
-  bool _loading = true;
-  String? _error;
+  final AuthSession session;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<FetchBloc<List<MemberSummary>>>();
+    bloc.add(const FetchRequested());
+    return bloc.stream
+        .firstWhere((state) => state.status != FetchStatus.loading);
   }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final members = await _tenantService.members(widget.session);
-      if (!mounted) return;
-      setState(() {
-        _members = members;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
-  }
-
-  List<MemberSummary> get _anggota =>
-      _members.where((m) => m.role == 'member').toList();
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<FetchBloc<List<MemberSummary>>>().state;
+    final loading = state.status == FetchStatus.loading ||
+        state.status == FetchStatus.initial;
+    final error = state.status == FetchStatus.failure
+        ? (state.error ?? 'Terjadi kesalahan')
+        : null;
+    final anggota = (state.data ?? const <MemberSummary>[])
+        .where((m) => m.role == 'member')
+        .toList();
     final totalSavings =
-        _anggota.fold<double>(0, (sum, m) => sum + m.savingsBalance);
-    final totalRecords =
-        _anggota.fold<int>(0, (sum, m) => sum + m.recordCount);
+        anggota.fold<double>(0, (sum, m) => sum + m.savingsBalance);
+    final totalRecords = anggota.fold<int>(0, (sum, m) => sum + m.recordCount);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Anggota ${widget.session.koperasiName ?? 'Koperasi'}'),
+        title: Text('Anggota ${session.koperasiName ?? 'Koperasi'}'),
       ),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            if (_loading)
+            if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
-            else if (_error != null)
+            else if (error != null)
               EmptyState(
                 icon: AppIcons.warning,
                 title: 'Gagal memuat',
-                message: _error!,
+                message: error,
               )
             else ...[
               StatCardRow(
                 children: [
                   StatCard(
                     icon: AppIcons.members,
-                    value: '${_anggota.length}',
+                    value: '${anggota.length}',
                     label: 'Anggota Aktif',
                     color: AppColors.primary,
                   ),
@@ -114,26 +106,26 @@ class _MembersPageState extends State<MembersPage> {
                     ),
               ),
               const SizedBox(height: 10),
-              if (_anggota.isEmpty)
+              if (anggota.isEmpty)
                 const EmptyState(
                   icon: AppIcons.members,
                   title: 'Belum ada anggota',
                   message: 'Anggota yang mendaftar akan muncul di sini.',
                 )
               else
-                for (final member in _anggota) ...[
+                for (final member in anggota) ...[
                   _MemberTile(
                     member: member,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => TenantRecordsPage(
-                          session: widget.session,
+                          session: session,
                           title: member.name,
                           subtitle:
                               'Catatan tersinkron milik ${member.name}',
-                          loader: () => _tenantService.memberRecords(
-                            widget.session,
+                          loader: () => const TenantService().memberRecords(
+                            session,
                             member.userId,
                           ),
                         ),
