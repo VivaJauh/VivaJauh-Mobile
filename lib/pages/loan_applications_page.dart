@@ -37,6 +37,9 @@ class LoanApplicationsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => FetchBloc<_LoanApplicationsData>(() async {
+        if (!online) {
+          return const _LoanApplicationsData(applications: <LoanApplication>[]);
+        }
         final applications = await const LoanService().list(session);
         if (session.role != 'primary_admin') {
           return _LoanApplicationsData(applications: applications);
@@ -91,6 +94,10 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
 
   Future<void> _refresh() {
     final bloc = context.read<FetchBloc<_LoanApplicationsData>>();
+    if (!widget.online) {
+      bloc.add(const FetchRequested());
+      return Future<void>.value();
+    }
     bloc.add(const FetchRequested());
     return bloc.stream.firstWhere(
       (state) => state.status != FetchStatus.loading,

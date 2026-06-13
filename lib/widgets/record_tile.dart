@@ -107,12 +107,23 @@ class RecordTile extends StatelessWidget {
     if (qty == 0) return null;
     return switch (record.recordType) {
       RecordType.feedTransaction => AppFormats.kg(qty.toDouble()),
-      RecordType.livestockEvent => AppFormats.ekor(qty.toDouble()),
+      RecordType.livestockEvent => _livestockValueString(r),
       RecordType.savingsTransaction ||
       RecordType.loanRepayment ||
       RecordType.loanApplication ||
       RecordType.sellerCredit => AppFormats.rupiah(qty.toDouble()),
       _ => null,
+    };
+  }
+
+  String? _livestockValueString(PayloadReader r) {
+    final qty = r.quantity.toDouble();
+    return switch (r.livestockEventType) {
+      LivestockEventType.penambahan => '+${AppFormats.ekor(qty)}',
+      LivestockEventType.pengurangan ||
+      LivestockEventType.kematian => '-${AppFormats.ekor(qty)}',
+      LivestockEventType.penggunaanPakan => '-${AppFormats.kg(qty)}',
+      LivestockEventType.catatanKesehatan => null,
     };
   }
 }
