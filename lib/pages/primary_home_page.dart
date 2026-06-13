@@ -75,15 +75,17 @@ class _PrimaryHomeView extends StatelessWidget {
         .take(4)
         .toList();
 
-    return RefreshIndicator(
-      onRefresh: () => _refresh(context),
-      color: AppColors.primary,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          if (!online) const OfflineBanner(online: false),
-          Text(
-            'Pengurus Primer',
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () => _refresh(context),
+        color: AppColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            if (!online) const OfflineBanner(online: false),
+            Text(
+              'Pengurus Primer',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.muted,
                   fontWeight: FontWeight.w600,
@@ -212,7 +214,8 @@ class _PrimaryHomeView extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
           ],
-        ],
+          ],
+        ),
       ),
     );
   }

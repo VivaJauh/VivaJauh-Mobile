@@ -60,13 +60,15 @@ class HomePage extends StatelessWidget {
     final feedSummary = Aggregator.computeFeedStock(records);
     final livestockSummary = Aggregator.computeLivestock(records);
 
-    return RefreshIndicator(
-      onRefresh: onRefreshRecords,
-      color: AppColors.primary,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          OfflineBanner(online: online, pendingCount: _pendingCount),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: onRefreshRecords,
+        color: AppColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            OfflineBanner(online: online, pendingCount: _pendingCount),
           Row(
             children: [
               Expanded(
@@ -217,7 +219,8 @@ class HomePage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
-        ],
+          ],
+        ),
       ),
     );
   }

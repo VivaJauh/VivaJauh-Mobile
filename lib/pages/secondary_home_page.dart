@@ -67,15 +67,17 @@ class _SecondaryHomeView extends StatelessWidget {
     final totalSavings =
         summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
 
-    return RefreshIndicator(
-      onRefresh: () => _refresh(context),
-      color: AppColors.primary,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          if (!online) const OfflineBanner(online: false),
-          Text(
-            'Pengurus Sekunder',
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () => _refresh(context),
+        color: AppColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            if (!online) const OfflineBanner(online: false),
+            Text(
+              'Pengurus Sekunder',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.muted,
                   fontWeight: FontWeight.w600,
@@ -168,7 +170,8 @@ class _SecondaryHomeView extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
           ],
-        ],
+          ],
+        ),
       ),
     );
   }
