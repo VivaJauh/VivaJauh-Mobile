@@ -49,51 +49,49 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
 
-  ProfilePage get _profilePage => ProfilePage(
-        session: widget.session,
-        onLogout: widget.onLogout,
-      );
+  ProfilePage get _profilePage =>
+      ProfilePage(session: widget.session, onLogout: widget.onLogout);
 
   List<Widget> get _memberPages => [
-        HomePage(
-          session: widget.session,
-          records: widget.records,
-          syncing: widget.syncing,
-          online: widget.online,
-          onAddRecord: widget.onAddRecord,
-          onUpdateRecord: widget.onUpdateRecord,
-          onDeleteRecord: widget.onDeleteRecord,
-          onSync: widget.onSync,
-          onRefreshRecords: widget.onRefreshRecords,
-        ),
-        FeedStockPage(
-          session: widget.session,
-          records: widget.records,
-          online: widget.online,
-          onAddRecord: widget.onAddRecord,
-          onUpdateRecord: widget.onUpdateRecord,
-          onDeleteRecord: widget.onDeleteRecord,
-          onRefreshRecords: widget.onRefreshRecords,
-        ),
-        LivestockPage(
-          session: widget.session,
-          records: widget.records,
-          online: widget.online,
-          onAddRecord: widget.onAddRecord,
-          onUpdateRecord: widget.onUpdateRecord,
-          onDeleteRecord: widget.onDeleteRecord,
-          onRefreshRecords: widget.onRefreshRecords,
-        ),
-        SyncQueuePage(
-          records: widget.records,
-          syncing: widget.syncing,
-          online: widget.online,
-          onSync: widget.onSync,
-          onRetryRecord: widget.onRetryRecord,
-        ),
-        FundPage(session: widget.session, online: widget.online),
-        _profilePage,
-      ];
+    HomePage(
+      session: widget.session,
+      records: widget.records,
+      syncing: widget.syncing,
+      online: widget.online,
+      onAddRecord: widget.onAddRecord,
+      onUpdateRecord: widget.onUpdateRecord,
+      onDeleteRecord: widget.onDeleteRecord,
+      onSync: widget.onSync,
+      onRefreshRecords: widget.onRefreshRecords,
+    ),
+    FeedStockPage(
+      session: widget.session,
+      records: widget.records,
+      online: widget.online,
+      onAddRecord: widget.onAddRecord,
+      onUpdateRecord: widget.onUpdateRecord,
+      onDeleteRecord: widget.onDeleteRecord,
+      onRefreshRecords: widget.onRefreshRecords,
+    ),
+    LivestockPage(
+      session: widget.session,
+      records: widget.records,
+      online: widget.online,
+      onAddRecord: widget.onAddRecord,
+      onUpdateRecord: widget.onUpdateRecord,
+      onDeleteRecord: widget.onDeleteRecord,
+      onRefreshRecords: widget.onRefreshRecords,
+    ),
+    SyncQueuePage(
+      records: widget.records,
+      syncing: widget.syncing,
+      online: widget.online,
+      onSync: widget.onSync,
+      onRetryRecord: widget.onRetryRecord,
+    ),
+    FundPage(session: widget.session, online: widget.online),
+    _profilePage,
+  ];
 
   static const _memberDestinations = [
     NavigationDestination(
@@ -114,7 +112,7 @@ class _DashboardPageState extends State<DashboardPage> {
     NavigationDestination(
       icon: Icon(AppIcons.navSync),
       selectedIcon: Icon(AppIcons.navSyncActive),
-      label: 'Sinkronisasi',
+      label: 'Sync',
     ),
     NavigationDestination(
       icon: Icon(AppIcons.savings),
@@ -129,12 +127,12 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   List<Widget> get _primaryPages => [
-        PrimaryHomePage(session: widget.session, online: widget.online),
-        MembersPage(session: widget.session),
-        FundPage(session: widget.session, online: widget.online),
-        LoanApplicationsPage(session: widget.session, online: widget.online),
-        _profilePage,
-      ];
+    PrimaryHomePage(session: widget.session, online: widget.online),
+    MembersPage(session: widget.session),
+    FundPage(session: widget.session, online: widget.online),
+    LoanApplicationsPage(session: widget.session, online: widget.online),
+    _profilePage,
+  ];
 
   static const _primaryDestinations = [
     NavigationDestination(
@@ -165,12 +163,12 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   List<Widget> get _secondaryPages => [
-        SecondaryHomePage(session: widget.session, online: widget.online),
-        FundPage(session: widget.session, online: widget.online),
-        LoanApplicationsPage(session: widget.session, online: widget.online),
-        KoperasiMonitorPage(session: widget.session),
-        _profilePage,
-      ];
+    SecondaryHomePage(session: widget.session, online: widget.online),
+    FundPage(session: widget.session, online: widget.online),
+    LoanApplicationsPage(session: widget.session, online: widget.online),
+    KoperasiMonitorPage(session: widget.session),
+    _profilePage,
+  ];
 
   static const _secondaryDestinations = [
     NavigationDestination(
