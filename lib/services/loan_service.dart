@@ -17,11 +17,7 @@ class LoanService {
     LoanStatus? status,
   }) async {
     final query = status != null ? '?status=${status.apiValue}' : '';
-    final data = await _request(
-      session,
-      'GET',
-      '/loans$query',
-    );
+    final data = await _request(session, 'GET', '/loans$query');
     return (data as List<dynamic>)
         .map(
           (item) =>
@@ -113,24 +109,30 @@ class LoanService {
       'Authorization': 'Bearer ${session.token}',
     };
 
-    final response = switch (method) {
-      'POST' => await http.post(
+    try {
+      final response = switch (method) {
+        'POST' => await http.post(
           uri,
           headers: headers,
           body: jsonEncode(body ?? {}),
         ),
-      'PATCH' => await http.patch(
+        'PATCH' => await http.patch(
           uri,
           headers: headers,
           body: jsonEncode(body ?? {}),
         ),
-      _ => await http.get(uri, headers: headers),
-    };
+        _ => await http.get(uri, headers: headers),
+      };
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(decoded['message']?.toString() ?? 'Permintaan gagal');
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(decoded['message']?.toString() ?? 'Permintaan gagal');
+      }
+      return decoded['data'];
+    } on FormatException {
+      throw Exception('Respons server tidak valid');
+    } on http.ClientException {
+      throw Exception('Server tidak bisa dihubungi');
     }
-    return decoded['data'];
   }
 }

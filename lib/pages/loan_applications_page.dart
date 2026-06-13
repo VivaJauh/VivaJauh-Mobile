@@ -46,18 +46,18 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   Future<void> _refresh() {
     final bloc = context.read<FetchBloc<List<LoanApplication>>>();
     bloc.add(const FetchRequested());
-    return bloc.stream
-        .firstWhere((state) => state.status != FetchStatus.loading);
+    return bloc.stream.firstWhere(
+      (state) => state.status != FetchStatus.loading,
+    );
   }
 
-  bool get _canApply => widget.session.role == 'member';
+  bool get _canApply =>
+      widget.session.role == 'member' || widget.session.role == 'primary_admin';
 
   Future<void> _openApply() async {
     final created = await Navigator.push<LoanApplication>(
       context,
-      MaterialPageRoute(
-        builder: (_) => LoanApplyPage(session: widget.session),
-      ),
+      MaterialPageRoute(builder: (_) => LoanApplyPage(session: widget.session)),
     );
     if (created == null || !mounted) return;
     await _refresh();
@@ -65,10 +65,8 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LoanDetailPage(
-          session: widget.session,
-          applicationId: created.id,
-        ),
+        builder: (_) =>
+            LoanDetailPage(session: widget.session, applicationId: created.id),
       ),
     );
     if (mounted) await _refresh();
@@ -78,10 +76,8 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LoanDetailPage(
-          session: widget.session,
-          applicationId: app.id,
-        ),
+        builder: (_) =>
+            LoanDetailPage(session: widget.session, applicationId: app.id),
       ),
     );
     if (mounted) await _refresh();
@@ -90,7 +86,8 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<List<LoanApplication>>>().state;
-    final loading = state.status == FetchStatus.loading ||
+    final loading =
+        state.status == FetchStatus.loading ||
         state.status == FetchStatus.initial;
     final error = state.status == FetchStatus.failure
         ? (state.error ?? 'Terjadi kesalahan')
@@ -100,65 +97,82 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
         ? items
         : items.where((a) => a.status == _statusFilter).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengajuan Pinjaman'),
-        actions: [
-          IconButton(
-            onPressed: loading ? null : _refresh,
-            tooltip: 'Muat ulang daftar',
-            icon: const Icon(AppIcons.refresh, size: 20),
+    return BlocListener<
+      FetchBloc<List<LoanApplication>>,
+      FetchState<List<LoanApplication>>
+    >(
+      listenWhen: (previous, current) =>
+          current.status == FetchStatus.failure &&
+          (previous.status != FetchStatus.failure ||
+              previous.error != current.error),
+      listener: (context, state) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.error ?? 'Gagal memuat pengajuan'),
+            backgroundColor: AppColors.danger,
           ),
-        ],
-      ),
-      floatingActionButton: _canApply
-          ? FloatingActionButton(
-              onPressed: widget.online ? _openApply : null,
-              tooltip: 'Ajukan pinjaman baru',
-              child: const Icon(AppIcons.add),
-            )
-          : null,
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        color: AppColors.primary,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-          children: [
-            if (!widget.online)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: OfflineBanner(online: false),
-              ),
-            _StatusFilterChips(
-              selected: _statusFilter,
-              onChanged: (value) => setState(() => _statusFilter = value),
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pengajuan Pinjaman'),
+          actions: [
+            IconButton(
+              onPressed: loading ? null : _refresh,
+              tooltip: 'Muat ulang daftar',
+              icon: const Icon(AppIcons.refresh, size: 20),
             ),
-            const SizedBox(height: 12),
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 80),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              )
-            else if (error != null)
-              EmptyState(
-                icon: AppIcons.warning,
-                title: 'Gagal memuat',
-                message: error,
-              )
-            else if (filtered.isEmpty)
-              const EmptyState(
-                icon: AppIcons.loanApplication,
-                title: 'Belum ada pengajuan',
-                message: 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
-              )
-            else
-              for (final app in filtered) ...[
-                _LoanTile(application: app, onTap: () => _openDetail(app)),
-                const SizedBox(height: 8),
-              ],
           ],
+        ),
+        floatingActionButton: _canApply
+            ? FloatingActionButton(
+                onPressed: widget.online ? _openApply : null,
+                tooltip: 'Ajukan pinjaman baru',
+                child: const Icon(AppIcons.add),
+              )
+            : null,
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          color: AppColors.primary,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            children: [
+              if (!widget.online)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: OfflineBanner(online: false),
+                ),
+              _StatusFilterChips(
+                selected: _statusFilter,
+                onChanged: (value) => setState(() => _statusFilter = value),
+              ),
+              const SizedBox(height: 12),
+              if (loading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 80),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                )
+              else if (error != null)
+                EmptyState(
+                  icon: AppIcons.warning,
+                  title: 'Gagal memuat',
+                  message: error,
+                )
+              else if (filtered.isEmpty)
+                const EmptyState(
+                  icon: AppIcons.loanApplication,
+                  title: 'Belum ada pengajuan',
+                  message: 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
+                )
+              else
+                for (final app in filtered) ...[
+                  _LoanTile(application: app, onTap: () => _openDetail(app)),
+                  const SizedBox(height: 8),
+                ],
+            ],
+          ),
         ),
       ),
     );
@@ -218,25 +232,25 @@ class _LoanTile extends StatelessWidget {
   final VoidCallback onTap;
 
   StatusBadge get _statusBadge => switch (application.status) {
-        LoanStatus.approved => StatusBadge.custom(
-            label: application.status.title,
-            background: const Color(0xFFDCF5E8),
-            foreground: AppColors.successDark,
-            icon: AppIcons.approve,
-          ),
-        LoanStatus.rejected => StatusBadge.custom(
-            label: application.status.title,
-            background: const Color(0xFFFFE4E1),
-            foreground: AppColors.dangerDark,
-            icon: AppIcons.reject,
-          ),
-        _ => StatusBadge.custom(
-            label: application.status.title,
-            background: AppColors.secondaryLight,
-            foreground: AppColors.warningDark,
-            icon: AppIcons.pending,
-          ),
-      };
+    LoanStatus.approved => StatusBadge.custom(
+      label: application.status.title,
+      background: const Color(0xFFDCF5E8),
+      foreground: AppColors.successDark,
+      icon: AppIcons.approve,
+    ),
+    LoanStatus.rejected => StatusBadge.custom(
+      label: application.status.title,
+      background: const Color(0xFFFFE4E1),
+      foreground: AppColors.dangerDark,
+      icon: AppIcons.reject,
+    ),
+    _ => StatusBadge.custom(
+      label: application.status.title,
+      background: AppColors.secondaryLight,
+      foreground: AppColors.warningDark,
+      icon: AppIcons.pending,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {

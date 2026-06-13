@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/aggregator.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
+import 'loan_applications_page.dart';
 import 'record_detail_page.dart';
 import 'record_form_page.dart';
 import 'records_page.dart';
@@ -150,15 +151,16 @@ class HomePage extends StatelessWidget {
 
           Text(
             'Catat Sekarang',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           _QuickActions(
             session: session,
             records: records,
             onAddRecord: onAddRecord,
+            online: online,
           ),
           const SizedBox(height: 20),
 
@@ -167,9 +169,9 @@ class HomePage extends StatelessWidget {
             children: [
               Text(
                 'Aktivitas Terbaru',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
               TextButton(
                 onPressed: () => Navigator.push(
@@ -194,7 +196,8 @@ class HomePage extends StatelessWidget {
             EmptyState(
               icon: AppIcons.emptyInbox,
               title: 'Belum ada catatan',
-              message: 'Mulai catat transaksi pakan, kejadian ternak, atau laporan harian.',
+              message:
+                  'Mulai catat transaksi pakan, kejadian ternak, atau laporan harian.',
             )
           else
             for (final record in _recent) ...[
@@ -225,19 +228,37 @@ class _QuickActions extends StatelessWidget {
     required this.session,
     required this.records,
     required this.onAddRecord,
+    required this.online,
   });
 
   final AuthSession session;
   final List<OfflineRecord> records;
   final Future<void> Function(RecordType, Map<String, dynamic>) onAddRecord;
+  final bool online;
 
   static const _actions = [
     (type: RecordType.feedTransaction, label: 'Pakan', icon: AppIcons.feed),
-    (type: RecordType.livestockEvent, label: 'Ternak', icon: AppIcons.livestock),
-    (type: RecordType.savingsTransaction, label: 'Simpanan', icon: AppIcons.savings),
+    (
+      type: RecordType.livestockEvent,
+      label: 'Ternak',
+      icon: AppIcons.livestock,
+    ),
+    (
+      type: RecordType.savingsTransaction,
+      label: 'Simpanan',
+      icon: AppIcons.savings,
+    ),
     (type: RecordType.loanRepayment, label: 'Cicilan', icon: AppIcons.loan),
-    (type: RecordType.dailyReport, label: 'Laporan', icon: AppIcons.dailyReport),
-    (type: RecordType.sellerCredit, label: 'Kredit', icon: AppIcons.sellerCredit),
+    (
+      type: RecordType.dailyReport,
+      label: 'Laporan',
+      icon: AppIcons.dailyReport,
+    ),
+    (
+      type: RecordType.sellerCredit,
+      label: 'Kredit',
+      icon: AppIcons.sellerCredit,
+    ),
   ];
 
   @override
@@ -249,25 +270,36 @@ class _QuickActions extends StatelessWidget {
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
       childAspectRatio: 1.2,
-      children: _actions
-          .map(
-            (a) => _ActionCard(
-              icon: a.icon,
-              label: a.label,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RecordFormPage(
-                    session: session,
-                    recordType: a.type,
-                    onSave: onAddRecord,
-                    records: records,
-                  ),
+      children: [
+        _ActionCard(
+          icon: AppIcons.loanApplication,
+          label: 'Pinjaman',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  LoanApplicationsPage(session: session, online: online),
+            ),
+          ),
+        ),
+        ..._actions.map(
+          (a) => _ActionCard(
+            icon: a.icon,
+            label: a.label,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RecordFormPage(
+                  session: session,
+                  recordType: a.type,
+                  onSave: onAddRecord,
+                  records: records,
                 ),
               ),
             ),
-          )
-          .toList(),
+          ),
+        ),
+      ],
     );
   }
 }
