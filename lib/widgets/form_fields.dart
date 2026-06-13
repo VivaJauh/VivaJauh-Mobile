@@ -113,6 +113,8 @@ class QtyField extends StatelessWidget {
     this.suffix,
     this.helper,
     this.allowDecimal = true,
+    this.maxValue,
+    this.maxValueMessage,
     super.key,
   });
 
@@ -122,6 +124,10 @@ class QtyField extends StatelessWidget {
   final String? helper;
   final bool allowDecimal;
 
+  /// Batas atas keras. Jika diisi, jumlah > maxValue ditolak (tidak bisa submit).
+  final double? maxValue;
+  final String? maxValueMessage;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -130,6 +136,7 @@ class QtyField extends StatelessWidget {
         FieldLabel(label),
         TextFormField(
           controller: controller,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           keyboardType: TextInputType.numberWithOptions(decimal: allowDecimal),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
@@ -139,6 +146,9 @@ class QtyField extends StatelessWidget {
             final parsed = parseFlexibleNumber(v);
             if (parsed == null || parsed <= 0) {
               return 'Masukkan angka yang valid';
+            }
+            if (maxValue != null && parsed > maxValue!) {
+              return maxValueMessage ?? 'Maksimal $maxValue';
             }
             return null;
           },
@@ -154,12 +164,18 @@ class RupiahField extends StatelessWidget {
     required this.label,
     required this.controller,
     this.helper,
+    this.maxValue,
+    this.maxValueMessage,
     super.key,
   });
 
   final String label;
   final TextEditingController controller;
   final String? helper;
+
+  /// Batas atas keras. Jika diisi, nominal > maxValue ditolak (tidak bisa submit).
+  final double? maxValue;
+  final String? maxValueMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +185,7 @@ class RupiahField extends StatelessWidget {
         FieldLabel(label),
         TextFormField(
           controller: controller,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
@@ -176,6 +193,9 @@ class RupiahField extends StatelessWidget {
             final parsed = int.tryParse(v);
             if (parsed == null || parsed <= 0) {
               return 'Masukkan jumlah yang valid';
+            }
+            if (maxValue != null && parsed > maxValue!) {
+              return maxValueMessage ?? 'Maksimal $maxValue';
             }
             return null;
           },

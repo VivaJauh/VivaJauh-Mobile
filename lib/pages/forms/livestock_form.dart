@@ -87,46 +87,16 @@ class _LivestockFormState extends State<LivestockForm> {
     return null;
   }
 
-  Future<bool> _confirmOverdraw(double current, double qty) async {
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Populasi Tidak Mencukupi'),
-        content: Text(
-          'Populasi $_resolvedType tercatat hanya ${AppFormats.ekor(current)}, '
-          'sedangkan kamu mencatat ${_eventType.label.toLowerCase()} ${AppFormats.ekor(qty)}.\n\n'
-          'Catatan tetap bisa disimpan, tapi populasi jenis ini akan minus '
-          'dan perlu dikoreksi.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Tetap Simpan'),
-          ),
-        ],
-      ),
-    );
-    return proceed ?? false;
+  /// Batas keras: pengurangan/kematian tidak boleh melebihi populasi tercatat.
+  double? get _qtyMax {
+    if (widget.populationByType == null || !_reducesPopulation) return null;
+    return _currentPopulation ?? 0;
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final qty = parseFlexibleNumber(_qtyCtrl.text);
     if (qty == null || qty <= 0) return;
-
-    if (widget.populationByType != null && _reducesPopulation) {
-      final current = _currentPopulation ?? 0;
-      if (qty > current && !await _confirmOverdraw(current, qty)) return;
-    }
-    if (!mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -184,6 +154,10 @@ class _LivestockFormState extends State<LivestockForm> {
             controller: _qtyCtrl,
             suffix: _eventType.quantityIsKg ? 'kg' : 'ekor',
             helper: _qtyHelper,
+            maxValue: _qtyMax,
+            maxValueMessage: _qtyMax != null
+                ? 'Maksimal ${AppFormats.ekor(_qtyMax!)} (populasi saat ini)'
+                : null,
           ),
           const SizedBox(height: 16),
           LabeledTextField(

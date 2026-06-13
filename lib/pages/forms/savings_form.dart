@@ -71,47 +71,17 @@ class _SavingsFormState extends State<SavingsForm> {
         '${AppFormats.rupiah(_currentBalance)}';
   }
 
-  Future<bool> _confirmOverdraw(double balance, num amount) async {
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Saldo Tidak Mencukupi'),
-        content: Text(
-          'Saldo simpanan ${_memberCtrl.text.trim()} tercatat hanya '
-          '${AppFormats.rupiah(balance)}, sedangkan kamu mencatat penarikan '
-          '${AppFormats.rupiah(amount)}.\n\n'
-          'Catatan tetap bisa disimpan, tapi saldo anggota ini akan minus '
-          'dan perlu dikoreksi.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Tetap Simpan'),
-          ),
-        ],
-      ),
-    );
-    return proceed ?? false;
+  /// Batas keras: penarikan tidak boleh melebihi saldo simpanan tercatat.
+  double? get _amountMax {
+    if (widget.balanceByMember == null || !_isWithdrawal) return null;
+    if (_memberCtrl.text.trim().isEmpty) return null;
+    return _currentBalance;
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final amount = int.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) return;
-
-    if (widget.balanceByMember != null && _isWithdrawal) {
-      final balance = _currentBalance;
-      if (amount > balance && !await _confirmOverdraw(balance, amount)) return;
-    }
-    if (!mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -164,6 +134,10 @@ class _SavingsFormState extends State<SavingsForm> {
             label: 'Jumlah',
             controller: _amountCtrl,
             helper: _amountHelper,
+            maxValue: _amountMax,
+            maxValueMessage: _amountMax != null
+                ? 'Maksimal ${AppFormats.rupiah(_amountMax!)} (saldo saat ini)'
+                : null,
           ),
           const SizedBox(height: 16),
           NoteField(controller: _noteCtrl),
