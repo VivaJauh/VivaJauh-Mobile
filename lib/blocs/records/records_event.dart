@@ -68,7 +68,12 @@ class RecordRetryRequested extends RecordsEvent {
 }
 
 class RecordsSyncRequested extends RecordsEvent {
-  const RecordsSyncRequested();
+  const RecordsSyncRequested({this.silent = false});
+
+  final bool silent;
+
+  @override
+  List<Object?> get props => [silent];
 }
 
 class RecordsConnectivityChanged extends RecordsEvent {

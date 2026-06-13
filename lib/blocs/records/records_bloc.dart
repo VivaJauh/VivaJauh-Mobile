@@ -13,6 +13,8 @@ export 'records_event.dart';
 export 'records_state.dart';
 
 class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
+  static const _autoSyncInterval = Duration(seconds: 45);
+
   RecordsBloc({
     required RecordService recordService,
     required SyncService syncService,
@@ -42,6 +44,7 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
   final Connectivity _connectivity;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  Timer? _autoSyncTimer;
   AuthSession? _session;
   int _noticeCounter = 0;
 
@@ -65,6 +68,7 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
     Emitter<RecordsState> emit,
   ) async {
     _session = event.session;
+    _startAutoSyncWorker();
     emit(state.copyWith(records: await _load()));
     if (state.online) add(const RecordsSyncRequested());
   }
@@ -74,6 +78,7 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
     Emitter<RecordsState> emit,
   ) async {
     _session = null;
+    _stopAutoSyncWorker();
     emit(RecordsState(online: state.online));
   }
 
@@ -179,7 +184,9 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
         state.copyWith(
           records: records,
           syncing: false,
-          notice: _notice('Sinkronisasi selesai (${records.length} catatan)'),
+          notice: event.silent
+              ? state.notice
+              : _notice('Sinkronisasi selesai (${records.length} catatan)'),
         ),
       );
     } catch (e) {
@@ -204,7 +211,22 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
 
   @override
   Future<void> close() {
+    _stopAutoSyncWorker();
     _connectivitySub?.cancel();
     return super.close();
+  }
+
+  void _startAutoSyncWorker() {
+    _autoSyncTimer ??= Timer.periodic(_autoSyncInterval, (_) {
+      if (isClosed || _session == null || !state.online || state.syncing) {
+        return;
+      }
+      add(const RecordsSyncRequested(silent: true));
+    });
+  }
+
+  void _stopAutoSyncWorker() {
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = null;
   }
 }
