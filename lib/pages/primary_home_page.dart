@@ -36,7 +36,9 @@ class PrimaryHomePage extends StatelessWidget {
         );
       })
         ..add(const FetchRequested()),
-      child: _PrimaryHomeView(session: session, online: online),
+      child: FetchErrorListener<_PrimaryHomeData>(
+        child: _PrimaryHomeView(session: session, online: online),
+      ),
     );
   }
 }

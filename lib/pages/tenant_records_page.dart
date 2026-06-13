@@ -25,10 +25,12 @@ class TenantRecordsPage extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           FetchBloc<List<OfflineRecord>>(loader)..add(const FetchRequested()),
-      child: _TenantRecordsView(
-        session: session,
-        title: title,
-        subtitle: subtitle,
+      child: FetchErrorListener<List<OfflineRecord>>(
+        child: _TenantRecordsView(
+          session: session,
+          title: title,
+          subtitle: subtitle,
+        ),
       ),
     );
   }

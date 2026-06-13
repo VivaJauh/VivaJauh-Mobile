@@ -19,7 +19,9 @@ class KoperasiMonitorPage extends StatelessWidget {
       create: (_) => FetchBloc<List<KoperasiSummary>>(
         () => const TenantService().koperasiSummaries(session),
       )..add(const FetchRequested()),
-      child: _KoperasiMonitorView(session: session),
+      child: FetchErrorListener<List<KoperasiSummary>>(
+        child: _KoperasiMonitorView(session: session),
+      ),
     );
   }
 }

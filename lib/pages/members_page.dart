@@ -19,7 +19,9 @@ class MembersPage extends StatelessWidget {
       create: (_) => FetchBloc<List<MemberSummary>>(
         () => const TenantService().members(session),
       )..add(const FetchRequested()),
-      child: _MembersView(session: session),
+      child: FetchErrorListener<List<MemberSummary>>(
+        child: _MembersView(session: session),
+      ),
     );
   }
 }

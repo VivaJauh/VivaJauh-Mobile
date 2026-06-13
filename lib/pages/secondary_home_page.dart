@@ -36,7 +36,9 @@ class SecondaryHomePage extends StatelessWidget {
         );
       })
         ..add(const FetchRequested()),
-      child: _SecondaryHomeView(session: session, online: online),
+      child: FetchErrorListener<_SecondaryHomeData>(
+        child: _SecondaryHomeView(session: session, online: online),
+      ),
     );
   }
 }
