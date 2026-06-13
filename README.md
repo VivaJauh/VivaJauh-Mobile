@@ -1,6 +1,12 @@
 # VivaJauh Mobile
 who knows - Technoscape 2026
 
+## Architecture
+
+VivaJauh Mobile menggunakan BLoC pattern untuk memisahkan UI, event, state, dan service layer. UI mengirim event ke BLoC, BLoC memproses business flow melalui service/repository, lalu mengembalikan state baru ke widget.
+
+Pola ini dipakai untuk fitur utama seperti autentikasi, sinkronisasi offline, record operasional, dana koperasi, dan pengajuan pinjaman.
+
 ## Getting Started
 
 1. Install Flutter SDK (>= 3.10.8):
