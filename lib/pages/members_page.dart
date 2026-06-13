@@ -19,9 +19,7 @@ class MembersPage extends StatelessWidget {
       create: (_) => FetchBloc<List<MemberSummary>>(
         () => const TenantService().members(session),
       )..add(const FetchRequested()),
-      child: FetchErrorListener<List<MemberSummary>>(
-        child: _MembersView(session: session),
-      ),
+      child: _MembersView(session: session),
     );
   }
 }
@@ -41,11 +39,9 @@ class _MembersView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<List<MemberSummary>>>().state;
-    final loading = state.status == FetchStatus.loading ||
-        state.status == FetchStatus.initial;
-    final error = state.status == FetchStatus.failure
-        ? (state.error ?? 'Terjadi kesalahan')
-        : null;
+    final showSpinner = state.data == null &&
+        (state.status == FetchStatus.loading ||
+            state.status == FetchStatus.initial);
     final anggota = (state.data ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
         .toList();
@@ -63,18 +59,12 @@ class _MembersView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            if (loading)
+            if (showSpinner)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-              )
-            else if (error != null)
-              EmptyState(
-                icon: AppIcons.warning,
-                title: 'Gagal memuat',
-                message: error,
               )
             else ...[
               StatCardRow(

@@ -25,12 +25,10 @@ class TenantRecordsPage extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           FetchBloc<List<OfflineRecord>>(loader)..add(const FetchRequested()),
-      child: FetchErrorListener<List<OfflineRecord>>(
-        child: _TenantRecordsView(
-          session: session,
-          title: title,
-          subtitle: subtitle,
-        ),
+      child: _TenantRecordsView(
+        session: session,
+        title: title,
+        subtitle: subtitle,
       ),
     );
   }
@@ -76,19 +74,14 @@ class _TenantRecordsView extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            if (state.status == FetchStatus.loading ||
-                state.status == FetchStatus.initial)
+            if (state.data == null &&
+                (state.status == FetchStatus.loading ||
+                    state.status == FetchStatus.initial))
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-              )
-            else if (state.status == FetchStatus.failure)
-              EmptyState(
-                icon: AppIcons.warning,
-                title: 'Gagal memuat',
-                message: state.error ?? 'Terjadi kesalahan',
               )
             else if (records.isEmpty)
               const EmptyState(

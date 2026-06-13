@@ -121,12 +121,9 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<_LoanApplicationsData>>().state;
-    final loading =
-        state.status == FetchStatus.loading ||
-        state.status == FetchStatus.initial;
-    final error = state.status == FetchStatus.failure
-        ? (state.error ?? 'Terjadi kesalahan')
-        : null;
+    final showSpinner = state.data == null &&
+        (state.status == FetchStatus.loading ||
+            state.status == FetchStatus.initial);
     final data =
         state.data ??
         const _LoanApplicationsData(applications: <LoanApplication>[]);
@@ -136,28 +133,12 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
         ? items
         : items.where((a) => a.status == _statusFilter).toList();
 
-    return BlocListener<
-      FetchBloc<_LoanApplicationsData>,
-      FetchState<_LoanApplicationsData>
-    >(
-      listenWhen: (previous, current) =>
-          current.status == FetchStatus.failure &&
-          (previous.status != FetchStatus.failure ||
-              previous.error != current.error),
-      listener: (context, state) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(state.error ?? 'Gagal memuat pengajuan'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-      },
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text('Pengajuan Pinjaman'),
           actions: [
             IconButton(
-              onPressed: loading ? null : _refresh,
+              onPressed: showSpinner ? null : _refresh,
               tooltip: 'Muat ulang daftar',
               icon: const Icon(AppIcons.refresh, size: 20),
             ),
@@ -186,18 +167,12 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
                 onChanged: (value) => setState(() => _statusFilter = value),
               ),
               const SizedBox(height: 12),
-              if (loading)
+              if (showSpinner)
                 const Padding(
                   padding: EdgeInsets.only(top: 80),
                   child: Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                )
-              else if (error != null)
-                EmptyState(
-                  icon: AppIcons.warning,
-                  title: 'Gagal memuat',
-                  message: error,
                 )
               else if (filtered.isEmpty)
                 const EmptyState(
@@ -221,7 +196,6 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
             ],
           ),
         ),
-      ),
     );
   }
 }

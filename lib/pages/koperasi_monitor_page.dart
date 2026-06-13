@@ -19,9 +19,7 @@ class KoperasiMonitorPage extends StatelessWidget {
       create: (_) => FetchBloc<List<KoperasiSummary>>(
         () => const TenantService().koperasiSummaries(session),
       )..add(const FetchRequested()),
-      child: FetchErrorListener<List<KoperasiSummary>>(
-        child: _KoperasiMonitorView(session: session),
-      ),
+      child: _KoperasiMonitorView(session: session),
     );
   }
 }
@@ -41,11 +39,9 @@ class _KoperasiMonitorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<List<KoperasiSummary>>>().state;
-    final loading = state.status == FetchStatus.loading ||
-        state.status == FetchStatus.initial;
-    final error = state.status == FetchStatus.failure
-        ? (state.error ?? 'Terjadi kesalahan')
-        : null;
+    final showSpinner = state.data == null &&
+        (state.status == FetchStatus.loading ||
+            state.status == FetchStatus.initial);
     final summaries = state.data ?? const <KoperasiSummary>[];
     final totalMembers =
         summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
@@ -60,18 +56,12 @@ class _KoperasiMonitorView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            if (loading)
+            if (showSpinner)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-              )
-            else if (error != null)
-              EmptyState(
-                icon: AppIcons.warning,
-                title: 'Gagal memuat',
-                message: error,
               )
             else ...[
               StatCardRow(

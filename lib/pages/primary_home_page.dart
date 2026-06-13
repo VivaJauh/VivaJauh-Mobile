@@ -36,9 +36,7 @@ class PrimaryHomePage extends StatelessWidget {
         );
       })
         ..add(const FetchRequested()),
-      child: FetchErrorListener<_PrimaryHomeData>(
-        child: _PrimaryHomeView(session: session, online: online),
-      ),
+      child: _PrimaryHomeView(session: session, online: online),
     );
   }
 }
@@ -59,11 +57,9 @@ class _PrimaryHomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<_PrimaryHomeData>>().state;
-    final loading = state.status == FetchStatus.loading ||
-        state.status == FetchStatus.initial;
-    final error = state.status == FetchStatus.failure
-        ? (state.error ?? 'Terjadi kesalahan')
-        : null;
+    final showSpinner = state.data == null &&
+        (state.status == FetchStatus.loading ||
+            state.status == FetchStatus.initial);
     final applications = state.data?.$2 ?? const <LoanApplication>[];
     final anggota = (state.data?.$1 ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
@@ -102,18 +98,12 @@ class _PrimaryHomeView extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 16),
-          if (loading)
+          if (showSpinner)
             const Padding(
               padding: EdgeInsets.only(top: 80),
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
-            )
-          else if (error != null)
-            EmptyState(
-              icon: AppIcons.warning,
-              title: 'Gagal memuat',
-              message: error,
             )
           else ...[
             StatCardRow(
