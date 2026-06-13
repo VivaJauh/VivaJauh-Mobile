@@ -37,6 +37,12 @@ class _LoanDetailView extends StatelessWidget {
 
   bool get _isSecondaryAdmin => session.role == 'secondary_admin';
 
+  bool _isNetworkError(String error) =>
+      error.contains('SocketException') ||
+      error.contains('host lookup') ||
+      error.contains('dihubungi') ||
+      error.contains('ClientException');
+
   Future<void> _refresh(BuildContext context) {
     final bloc = context.read<LoanDetailBloc>();
     bloc.add(const LoanDetailRequested());
@@ -121,8 +127,12 @@ class _LoanDetailView extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     child: EmptyState(
                       icon: AppIcons.warning,
-                      title: 'Gagal memuat',
-                      message: state.error!,
+                      title: _isNetworkError(state.error!)
+                          ? 'Tidak ada koneksi'
+                          : 'Belum bisa dimuat',
+                      message: _isNetworkError(state.error!)
+                          ? 'Periksa koneksi internet lalu tarik untuk memuat ulang.'
+                          : state.error!,
                     ),
                   )
                 : RefreshIndicator(

@@ -70,9 +70,8 @@ class _FundView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FundBloc>().state;
-    final loading = state.loading;
-    final error = state.error;
     final overview = state.overview;
+    final showSpinner = overview == null && state.loading;
     final isMember = session.role == 'member';
 
     return BlocListener<FundBloc, FundState>(
@@ -94,7 +93,7 @@ class _FundView extends StatelessWidget {
           title: Text(_title),
           actions: [
             IconButton(
-              onPressed: loading ? null : () => _refresh(context),
+              onPressed: showSpinner ? null : () => _refresh(context),
               tooltip: 'Muat ulang dana',
               icon: const Icon(AppIcons.refresh, size: 20),
             ),
@@ -111,18 +110,12 @@ class _FundView extends StatelessWidget {
                   padding: EdgeInsets.only(bottom: 12),
                   child: OfflineBanner(online: false),
                 ),
-              if (loading)
+              if (showSpinner)
                 const Padding(
                   padding: EdgeInsets.only(top: 80),
                   child: Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                )
-              else if (error != null)
-                EmptyState(
-                  icon: AppIcons.warning,
-                  title: 'Gagal memuat',
-                  message: error,
                 )
               else if (overview == null)
                 const EmptyState(
