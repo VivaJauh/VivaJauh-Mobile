@@ -16,9 +16,9 @@ class FundPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => FetchBloc<FundOverview>(
-        () => const FundService().overview(session),
-      )..add(const FetchRequested()),
+      create: (_) =>
+          FundBloc(fundService: const FundService(), session: session)
+            ..add(const FundOverviewRequested()),
       child: _FundView(session: session, online: online),
     );
   }
@@ -33,21 +33,19 @@ class _FundView extends StatelessWidget {
   bool get _canRecord => session.role == 'primary_admin';
 
   String get _title => switch (session.role) {
-        'primary_admin' => 'Dana Anggota',
-        'secondary_admin' => 'Monitoring Dana',
-        _ => 'Dana Saya',
-      };
+    'primary_admin' => 'Dana Anggota',
+    'secondary_admin' => 'Monitoring Dana',
+    _ => 'Dana Saya',
+  };
 
   Future<void> _refresh(BuildContext context) {
-    final bloc = context.read<FetchBloc<FundOverview>>();
-    bloc.add(const FetchRequested());
-    return bloc.stream
-        .firstWhere((state) => state.status != FetchStatus.loading);
+    final bloc = context.read<FundBloc>();
+    bloc.add(const FundOverviewRequested());
+    return bloc.stream.firstWhere((state) => !state.loading);
   }
 
   Future<void> _recordPayment(BuildContext context, FundItem item) async {
-    final bloc = context.read<FetchBloc<FundOverview>>();
-    final messenger = ScaffoldMessenger.of(context);
+    final bloc = context.read<FundBloc>();
     final result = await showModalBottomSheet<_PaymentInput>(
       context: context,
       isScrollControlled: true,
@@ -56,159 +54,152 @@ class _FundView extends StatelessWidget {
       ),
       builder: (_) => _PaymentSheet(item: item),
     );
-    if (result == null) return;
+    if (result == null || bloc.isClosed) return;
 
-    try {
-      await const FundService().recordPayment(
-        session,
+    bloc.add(
+      FundPaymentSubmitted(
         memberId: item.memberId,
         fundType: item.fundType,
         periodKey: item.periodKey,
         amount: result.amount,
         note: result.note,
-      );
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Pembayaran dana berhasil dicatat'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      if (!bloc.isClosed) bloc.add(const FetchRequested());
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<FetchBloc<FundOverview>>().state;
-    final loading = state.status == FetchStatus.loading ||
-        state.status == FetchStatus.initial;
-    final error = state.status == FetchStatus.failure
-        ? (state.error ?? 'Terjadi kesalahan')
-        : null;
-    final overview = state.data;
+    final state = context.watch<FundBloc>().state;
+    final loading = state.loading;
+    final error = state.error;
+    final overview = state.overview;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_title),
-        actions: [
-          IconButton(
-            onPressed: loading ? null : () => _refresh(context),
-            tooltip: 'Muat ulang dana',
-            icon: const Icon(AppIcons.refresh, size: 20),
+    return BlocListener<FundBloc, FundState>(
+      listenWhen: (previous, current) =>
+          current.notice != null && previous.notice != current.notice,
+      listener: (context, state) {
+        final notice = state.notice!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(notice.message),
+            backgroundColor: notice.isError
+                ? AppColors.danger
+                : AppColors.success,
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _refresh(context),
-        color: AppColors.primary,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: [
-            if (!online)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: OfflineBanner(online: false),
-              ),
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 80),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_title),
+          actions: [
+            IconButton(
+              onPressed: loading ? null : () => _refresh(context),
+              tooltip: 'Muat ulang dana',
+              icon: const Icon(AppIcons.refresh, size: 20),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () => _refresh(context),
+          color: AppColors.primary,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              if (!online)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: OfflineBanner(online: false),
                 ),
-              )
-            else if (error != null)
-              EmptyState(
-                icon: AppIcons.warning,
-                title: 'Gagal memuat',
-                message: error,
-              )
-            else if (overview == null)
-              const EmptyState(
-                icon: AppIcons.savings,
-                title: 'Belum ada data',
-                message: 'Data dana akan muncul setelah sinkronisasi.',
-              )
-            else ...[
-              _DueInfoCard(overview: overview),
-              const SizedBox(height: 12),
-              StatCardRow(
-                children: [
-                  StatCard(
-                    icon: AppIcons.members,
-                    value: '${overview.totals.memberCount}',
-                    label: session.role == 'member'
-                        ? 'Akun'
-                        : 'Anggota',
-                    color: AppColors.primary,
+              if (loading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 80),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                  StatCard(
-                    icon: AppIcons.savings,
-                    value: AppFormats.rupiahCompact(
-                      overview.totals.paidTotal,
-                    ),
-                    label: 'Terbayar',
-                    color: AppColors.success,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              StatCardRow(
-                children: [
-                  StatCard(
-                    icon: AppIcons.pending,
-                    value: AppFormats.rupiahCompact(
-                      overview.totals.outstandingTotal,
-                    ),
-                    label: 'Belum Lunas',
-                    color: AppColors.warning,
-                  ),
-                  StatCard(
-                    icon: AppIcons.warning,
-                    value: AppFormats.rupiahCompact(
-                      overview.totals.overdueTotal,
-                    ),
-                    label: 'Lewat Tempo',
-                    color: AppColors.danger,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                session.role == 'member'
-                    ? 'Kewajiban Saya'
-                    : 'Daftar Kewajiban',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              if (overview.items.isEmpty)
+                )
+              else if (error != null)
+                EmptyState(
+                  icon: AppIcons.warning,
+                  title: 'Gagal memuat',
+                  message: error,
+                )
+              else if (overview == null)
                 const EmptyState(
                   icon: AppIcons.savings,
-                  title: 'Belum ada kewajiban',
-                  message: 'Dana pokok dan iuran akan dibuat otomatis.',
+                  title: 'Belum ada data',
+                  message: 'Data dana akan muncul setelah sinkronisasi.',
                 )
-              else
-                for (final item in overview.items) ...[
-                  _FundTile(
-                    item: item,
-                    showTenant: session.role == 'secondary_admin',
-                    canRecord: _canRecord &&
-                        item.hasOutstanding &&
-                        online,
-                    onRecord: () => _recordPayment(context, item),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+              else ...[
+                _DueInfoCard(overview: overview),
+                const SizedBox(height: 12),
+                StatCardRow(
+                  children: [
+                    StatCard(
+                      icon: AppIcons.members,
+                      value: '${overview.totals.memberCount}',
+                      label: session.role == 'member' ? 'Akun' : 'Anggota',
+                      color: AppColors.primary,
+                    ),
+                    StatCard(
+                      icon: AppIcons.savings,
+                      value: AppFormats.rupiahCompact(
+                        overview.totals.paidTotal,
+                      ),
+                      label: 'Terbayar',
+                      color: AppColors.success,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                StatCardRow(
+                  children: [
+                    StatCard(
+                      icon: AppIcons.pending,
+                      value: AppFormats.rupiahCompact(
+                        overview.totals.outstandingTotal,
+                      ),
+                      label: 'Belum Lunas',
+                      color: AppColors.warning,
+                    ),
+                    StatCard(
+                      icon: AppIcons.warning,
+                      value: AppFormats.rupiahCompact(
+                        overview.totals.overdueTotal,
+                      ),
+                      label: 'Lewat Tempo',
+                      color: AppColors.danger,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  session.role == 'member'
+                      ? 'Kewajiban Saya'
+                      : 'Daftar Kewajiban',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 10),
+                if (overview.items.isEmpty)
+                  const EmptyState(
+                    icon: AppIcons.savings,
+                    title: 'Belum ada kewajiban',
+                    message: 'Dana pokok dan iuran akan dibuat otomatis.',
+                  )
+                else
+                  for (final item in overview.items) ...[
+                    _FundTile(
+                      item: item,
+                      showTenant: session.role == 'secondary_admin',
+                      canRecord: _canRecord && item.hasOutstanding && online,
+                      onRecord: () => _recordPayment(context, item),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -240,10 +231,10 @@ class _DueInfoCard extends StatelessWidget {
               '${AppFormats.rupiah(overview.monthlyDuesAmount)} jatuh tempo '
               'setiap tanggal 1, periode ${overview.currentPeriod}.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -496,9 +487,9 @@ class _PaymentSheetState extends State<_PaymentSheet> {
           children: [
             Text(
               'Catat Pembayaran',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
