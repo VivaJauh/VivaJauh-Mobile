@@ -1,16 +1,38 @@
-# vivajauh
-
-A new Flutter project.
+# VivaJauh Mobile
+who knows - Technoscape 2026
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. Install Flutter SDK (>= 3.10.8):
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter --version
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+2. Install dependencies:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+```
+
+3. Create `.env` from the example:
+
+```bash
+cp .env.example .env
+```
+
+> For local development with the backend API, update `API_BASE_URL` to `http://10.0.2.2:3000/api/v1` (Android emulator) or `http://localhost:3000/api/v1` (iOS simulator).
+
+4. Run the app:
+
+```bash
+flutter run
+```
+
+## Build APK
+
+```bash
+flutter build apk --release
+```
+
+The APK will be at `build/app/outputs/flutter-apk/app-release.apk`.
