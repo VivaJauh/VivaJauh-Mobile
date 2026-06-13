@@ -68,13 +68,17 @@ class AppFormats {
 
   static String delta(Duration value) {
     final d = value.isNegative ? Duration.zero : value;
-    if (d.inSeconds < 60) return '${d.inSeconds} d';
-    if (d.inMinutes < 60) return '${d.inMinutes} m';
+    if (d.inSeconds < 60) return '${d.inSeconds} detik';
+    if (d.inMinutes < 60) return '${d.inMinutes} menit';
     if (d.inHours < 24) {
       final minutes = d.inMinutes % 60;
-      return minutes == 0 ? '${d.inHours} j' : '${d.inHours} j $minutes m';
+      return minutes == 0
+          ? '${d.inHours} jam'
+          : '${d.inHours} jam $minutes menit';
     }
     final hours = d.inHours % 24;
-    return hours == 0 ? '${d.inDays} hr' : '${d.inDays} hr $hours j';
+    return hours == 0
+        ? '${d.inDays} hari'
+        : '${d.inDays} hari $hours jam';
   }
 }

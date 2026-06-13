@@ -114,7 +114,7 @@ class ProfilePage extends StatelessWidget {
                   const Divider(height: 1, color: AppColors.border),
                   _InfoRow(
                     icon: AppIcons.device,
-                    label: 'Device ID',
+                    label: 'ID Perangkat',
                     value: session.deviceId,
                     valueStyle: const TextStyle(
                       fontSize: 11,

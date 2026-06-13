@@ -112,7 +112,7 @@ class _DashboardPageState extends State<DashboardPage> {
     NavigationDestination(
       icon: Icon(AppIcons.navSync),
       selectedIcon: Icon(AppIcons.navSyncActive),
-      label: 'Sync',
+      label: 'Sinkron',
     ),
     NavigationDestination(
       icon: Icon(AppIcons.savings),
