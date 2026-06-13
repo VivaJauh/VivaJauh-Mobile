@@ -136,7 +136,11 @@ class SyncService {
     };
 
     for (final record in remoteRecords) {
-      byKey[_recordKey(record)] = record;
+      final key = _recordKey(record);
+      final local = byKey[key];
+      // Catatan lokal yang belum tersinkron tidak boleh ketimpa data pull.
+      if (local != null && local.syncStatus != SyncStatus.synced) continue;
+      byKey[key] = record;
     }
 
     final merged = byKey.values.toList()
