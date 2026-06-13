@@ -26,13 +26,15 @@ class LoanApplyPage extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           LoanApplyBloc(loanService: const LoanService(), session: session),
-      child: const _LoanApplyView(),
+      child: _LoanApplyView(session: session),
     );
   }
 }
 
 class _LoanApplyView extends StatefulWidget {
-  const _LoanApplyView();
+  const _LoanApplyView({required this.session});
+
+  final AuthSession session;
 
   @override
   State<_LoanApplyView> createState() => _LoanApplyViewState();
@@ -48,6 +50,16 @@ class _LoanApplyViewState extends State<_LoanApplyView> {
 
   String _koperasi = kKoperasiOptions.first;
   int _tenure = kTenureOptions[2];
+
+  bool get _isMember => widget.session.role == 'member';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isMember) {
+      _name.text = widget.session.name;
+    }
+  }
 
   @override
   void dispose() {
@@ -111,6 +123,10 @@ class _LoanApplyViewState extends State<_LoanApplyView> {
                   label: 'Nama anggota pemohon',
                   controller: _name,
                   hint: 'Contoh: Pak Hendra',
+                  readOnly: _isMember,
+                  helper: _isMember
+                      ? 'Nama otomatis dari akun yang sedang login'
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 LabeledTextField(

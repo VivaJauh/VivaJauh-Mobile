@@ -4,10 +4,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
+import '../services/tenant_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 import 'loan_apply_page.dart';
 import 'loan_detail_page.dart';
+import 'tenant_records_page.dart';
+
+class _LoanApplicationsData {
+  const _LoanApplicationsData({
+    required this.applications,
+    this.repaymentMembers = const [],
+  });
+
+  final List<LoanApplication> applications;
+  final List<MemberSummary> repaymentMembers;
+}
 
 class LoanApplicationsPage extends StatelessWidget {
   const LoanApplicationsPage({
@@ -22,9 +34,27 @@ class LoanApplicationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => FetchBloc<List<LoanApplication>>(
-        () => const LoanService().list(session),
-      )..add(const FetchRequested()),
+      create: (_) => FetchBloc<_LoanApplicationsData>(() async {
+        final applications = await const LoanService().list(session);
+        if (session.role != 'primary_admin') {
+          return _LoanApplicationsData(applications: applications);
+        }
+
+        final members = await const TenantService().members(session);
+        final repaymentMembers =
+            members
+                .where(
+                  (member) =>
+                      member.role == 'member' && member.repaymentTotal > 0,
+                )
+                .toList()
+              ..sort((a, b) => b.repaymentTotal.compareTo(a.repaymentTotal));
+
+        return _LoanApplicationsData(
+          applications: applications,
+          repaymentMembers: repaymentMembers,
+        );
+      })..add(const FetchRequested()),
       child: _LoanApplicationsView(session: session, online: online),
     );
   }
@@ -44,7 +74,7 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   LoanStatus? _statusFilter;
 
   Future<void> _refresh() {
-    final bloc = context.read<FetchBloc<List<LoanApplication>>>();
+    final bloc = context.read<FetchBloc<_LoanApplicationsData>>();
     bloc.add(const FetchRequested());
     return bloc.stream.firstWhere(
       (state) => state.status != FetchStatus.loading,
@@ -85,21 +115,25 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<FetchBloc<List<LoanApplication>>>().state;
+    final state = context.watch<FetchBloc<_LoanApplicationsData>>().state;
     final loading =
         state.status == FetchStatus.loading ||
         state.status == FetchStatus.initial;
     final error = state.status == FetchStatus.failure
         ? (state.error ?? 'Terjadi kesalahan')
         : null;
-    final items = state.data ?? const <LoanApplication>[];
+    final data =
+        state.data ??
+        const _LoanApplicationsData(applications: <LoanApplication>[]);
+    final items = data.applications;
+    final repaymentMembers = data.repaymentMembers;
     final filtered = _statusFilter == null
         ? items
         : items.where((a) => a.status == _statusFilter).toList();
 
     return BlocListener<
-      FetchBloc<List<LoanApplication>>,
-      FetchState<List<LoanApplication>>
+      FetchBloc<_LoanApplicationsData>,
+      FetchState<_LoanApplicationsData>
     >(
       listenWhen: (previous, current) =>
           current.status == FetchStatus.failure &&
@@ -164,13 +198,158 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
                 const EmptyState(
                   icon: AppIcons.loanApplication,
                   title: 'Belum ada pengajuan',
-                  message: 'Belum ada pengajuan pinjaman yang perlu ditinjau.',
+                  message:
+                      'Belum ada pengajuan pinjaman baru. Riwayat cicilan anggota tampil di bawah jika tersedia.',
                 )
               else
                 for (final app in filtered) ...[
                   _LoanTile(application: app, onTap: () => _openDetail(app)),
                   const SizedBox(height: 8),
                 ],
+              if (repaymentMembers.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _RepaymentMembersSection(
+                  session: widget.session,
+                  members: repaymentMembers,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RepaymentMembersSection extends StatelessWidget {
+  const _RepaymentMembersSection({
+    required this.session,
+    required this.members,
+  });
+
+  final AuthSession session;
+  final List<MemberSummary> members;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Riwayat Cicilan Anggota',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 10),
+        for (final member in members) ...[
+          _RepaymentMemberTile(session: session, member: member),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _RepaymentMemberTile extends StatelessWidget {
+  const _RepaymentMemberTile({required this.session, required this.member});
+
+  final AuthSession session;
+  final MemberSummary member;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label:
+          'Riwayat cicilan ${member.name}, total ${AppFormats.rupiah(member.repaymentTotal)}',
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TenantRecordsPage(
+              session: session,
+              title: 'Cicilan ${member.name}',
+              subtitle: 'Riwayat cicilan tersinkron milik ${member.name}',
+              loader: () async {
+                final records = await const TenantService().memberRecords(
+                  session,
+                  member.userId,
+                );
+                return records
+                    .where(
+                      (record) => record.recordType == RecordType.loanRepayment,
+                    )
+                    .toList();
+              },
+            ),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  AppIcons.loan,
+                  color: AppColors.warningDark,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      member.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.text,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${member.recordCount} catatan tersinkron',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                AppFormats.rupiahCompact(member.repaymentTotal),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                AppIcons.chevronRight,
+                size: 14,
+                color: AppColors.muted,
+              ),
             ],
           ),
         ),

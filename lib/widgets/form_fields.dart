@@ -48,6 +48,7 @@ class LabeledTextField extends StatelessWidget {
     this.helper,
     this.maxLines = 1,
     this.keyboardType,
+    this.readOnly = false,
     super.key,
   });
 
@@ -58,6 +59,7 @@ class LabeledTextField extends StatelessWidget {
   final String? helper;
   final int maxLines;
   final TextInputType? keyboardType;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +71,11 @@ class LabeledTextField extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          readOnly: readOnly,
           validator: required
-              ? (v) => (v == null || v.trim().isEmpty) ? '$label wajib diisi' : null
+              ? (v) => (v == null || v.trim().isEmpty)
+                    ? '$label wajib diisi'
+                    : null
               : null,
           decoration: InputDecoration(hintText: hint, helperText: helper),
         ),
@@ -80,7 +85,11 @@ class LabeledTextField extends StatelessWidget {
 }
 
 class NoteField extends StatelessWidget {
-  const NoteField({required this.controller, this.label = 'Catatan', super.key});
+  const NoteField({
+    required this.controller,
+    this.label = 'Catatan',
+    super.key,
+  });
 
   final TextEditingController controller;
   final String label;
@@ -128,13 +137,12 @@ class QtyField extends StatelessWidget {
           validator: (v) {
             if (v == null || v.trim().isEmpty) return '$label wajib diisi';
             final parsed = parseFlexibleNumber(v);
-            if (parsed == null || parsed <= 0) return 'Masukkan angka yang valid';
+            if (parsed == null || parsed <= 0) {
+              return 'Masukkan angka yang valid';
+            }
             return null;
           },
-          decoration: InputDecoration(
-            suffixText: suffix,
-            helperText: helper,
-          ),
+          decoration: InputDecoration(suffixText: suffix, helperText: helper),
         ),
       ],
     );
@@ -166,13 +174,12 @@ class RupiahField extends StatelessWidget {
           validator: (v) {
             if (v == null || v.trim().isEmpty) return '$label wajib diisi';
             final parsed = int.tryParse(v);
-            if (parsed == null || parsed <= 0) return 'Masukkan jumlah yang valid';
+            if (parsed == null || parsed <= 0) {
+              return 'Masukkan jumlah yang valid';
+            }
             return null;
           },
-          decoration: InputDecoration(
-            prefixText: 'Rp ',
-            helperText: helper,
-          ),
+          decoration: InputDecoration(prefixText: 'Rp ', helperText: helper),
         ),
       ],
     );
@@ -215,10 +222,10 @@ class LabeledDropdown<T> extends StatelessWidget {
           hint: hint != null ? Text(hint!) : null,
           decoration: const InputDecoration(),
           items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(itemLabel(item)),
-                  ))
+              .map(
+                (item) =>
+                    DropdownMenuItem(value: item, child: Text(itemLabel(item))),
+              )
               .toList(),
           onChanged: onChanged,
         ),
@@ -271,7 +278,11 @@ class OfflineHintCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_rounded, size: 16, color: AppColors.primaryDark),
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 16,
+            color: AppColors.primaryDark,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
