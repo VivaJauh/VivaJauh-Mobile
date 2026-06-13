@@ -73,6 +73,7 @@ class _FundView extends StatelessWidget {
     final loading = state.loading;
     final error = state.error;
     final overview = state.overview;
+    final isMember = session.role == 'member';
 
     return BlocListener<FundBloc, FundState>(
       listenWhen: (previous, current) =>
@@ -135,9 +136,11 @@ class _FundView extends StatelessWidget {
                 StatCardRow(
                   children: [
                     StatCard(
-                      icon: AppIcons.members,
-                      value: '${overview.totals.memberCount}',
-                      label: session.role == 'member' ? 'Akun' : 'Anggota',
+                      icon: isMember ? AppIcons.records : AppIcons.members,
+                      value: isMember
+                          ? '${overview.totals.obligationCount}'
+                          : '${overview.totals.memberCount}',
+                      label: isMember ? 'Kewajiban' : 'Anggota',
                       color: AppColors.primary,
                     ),
                     StatCard(
@@ -173,9 +176,7 @@ class _FundView extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  session.role == 'member'
-                      ? 'Kewajiban Saya'
-                      : 'Daftar Kewajiban',
+                  isMember ? 'Kewajiban Saya' : 'Daftar Kewajiban',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -191,7 +192,7 @@ class _FundView extends StatelessWidget {
                   for (final item in overview.items) ...[
                     _FundTile(
                       item: item,
-                      showMemberIdentity: session.role != 'member',
+                      showMemberIdentity: !isMember,
                       showTenant: session.role == 'secondary_admin',
                       canRecord: _canRecord && item.hasOutstanding && online,
                       onRecord: () => _recordPayment(context, item),
