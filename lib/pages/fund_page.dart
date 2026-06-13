@@ -191,6 +191,7 @@ class _FundView extends StatelessWidget {
                   for (final item in overview.items) ...[
                     _FundTile(
                       item: item,
+                      showMemberIdentity: session.role != 'member',
                       showTenant: session.role == 'secondary_admin',
                       canRecord: _canRecord && item.hasOutstanding && online,
                       onRecord: () => _recordPayment(context, item),
@@ -246,12 +247,14 @@ class _DueInfoCard extends StatelessWidget {
 class _FundTile extends StatelessWidget {
   const _FundTile({
     required this.item,
+    required this.showMemberIdentity,
     required this.showTenant,
     required this.canRecord,
     required this.onRecord,
   });
 
   final FundItem item;
+  final bool showMemberIdentity;
   final bool showTenant;
   final bool canRecord;
   final VoidCallback onRecord;
@@ -309,19 +312,21 @@ class _FundTile extends StatelessWidget {
                         color: AppColors.text,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      showTenant
-                          ? '${item.memberName} - ${item.tenantName}'
-                          : item.memberName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w600,
+                    if (showMemberIdentity) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        showTenant
+                            ? '${item.memberName} - ${item.tenantName}'
+                            : item.memberName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
