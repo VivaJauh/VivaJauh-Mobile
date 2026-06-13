@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/models.dart';
 import '../../services/loan_service.dart';
+import '../../utils/error_messages.dart';
 
 sealed class LoanDetailEvent extends Equatable {
   const LoanDetailEvent();
@@ -67,20 +68,26 @@ class LoanDetailState extends Equatable {
     LoanAuditTrail? trail,
     String? error,
     LoanDecisionNotice? notice,
-  }) =>
-      LoanDetailState(
-        loading: loading ?? this.loading,
-        analyzing: analyzing ?? this.analyzing,
-        deciding: deciding ?? this.deciding,
-        application: application ?? this.application,
-        trail: trail ?? this.trail,
-        error: error ?? this.error,
-        notice: notice ?? this.notice,
-      );
+  }) => LoanDetailState(
+    loading: loading ?? this.loading,
+    analyzing: analyzing ?? this.analyzing,
+    deciding: deciding ?? this.deciding,
+    application: application ?? this.application,
+    trail: trail ?? this.trail,
+    error: error ?? this.error,
+    notice: notice ?? this.notice,
+  );
 
   @override
-  List<Object?> get props =>
-      [loading, analyzing, deciding, application, trail, error, notice];
+  List<Object?> get props => [
+    loading,
+    analyzing,
+    deciding,
+    application,
+    trail,
+    error,
+    notice,
+  ];
 }
 
 class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
@@ -88,10 +95,10 @@ class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
     required LoanService loanService,
     required AuthSession session,
     required String applicationId,
-  })  : _loanService = loanService,
-        _session = session,
-        _applicationId = applicationId,
-        super(const LoanDetailState()) {
+  }) : _loanService = loanService,
+       _session = session,
+       _applicationId = applicationId,
+       super(const LoanDetailState()) {
     on<LoanDetailRequested>(_onRequested);
     on<LoanDecisionSubmitted>(_onDecisionSubmitted);
   }
@@ -118,8 +125,7 @@ class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
   ) async {
     emit(state.copyWith(loading: true, analyzing: false));
     try {
-      var application =
-          await _loanService.getById(_session, _applicationId);
+      var application = await _loanService.getById(_session, _applicationId);
       if (application.recommendation == null) {
         emit(state.copyWith(loading: true, analyzing: true));
         await _loanService.generateRecommendation(_session, _applicationId);
@@ -140,7 +146,7 @@ class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
           loading: false,
           application: state.application,
           trail: state.trail,
-          error: e.toString().replaceFirst('Exception: ', ''),
+          error: friendlyErrorMessage(e),
           notice: state.notice,
         ),
       );
@@ -164,8 +170,9 @@ class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
           trail: trail,
           notice: LoanDecisionNotice(
             id: ++_noticeCounter,
-            message:
-                event.approve ? 'Pengajuan disetujui' : 'Pengajuan ditolak',
+            message: event.approve
+                ? 'Pengajuan disetujui'
+                : 'Pengajuan ditolak',
           ),
         ),
       );
@@ -175,7 +182,7 @@ class LoanDetailBloc extends Bloc<LoanDetailEvent, LoanDetailState> {
           deciding: false,
           notice: LoanDecisionNotice(
             id: ++_noticeCounter,
-            message: e.toString().replaceFirst('Exception: ', ''),
+            message: friendlyErrorMessage(e),
             isError: true,
           ),
         ),

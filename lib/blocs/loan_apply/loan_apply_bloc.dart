@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/models.dart';
 import '../../services/loan_service.dart';
+import '../../utils/error_messages.dart';
 
 sealed class LoanApplyEvent extends Equatable {
   const LoanApplyEvent();
@@ -30,13 +31,13 @@ class LoanApplySubmitted extends LoanApplyEvent {
 
   @override
   List<Object?> get props => [
-        applicantName,
-        targetKoperasi,
-        requestedAmount,
-        tenureMonths,
-        applicantMemberId,
-        purpose,
-      ];
+    applicantName,
+    targetKoperasi,
+    requestedAmount,
+    tenureMonths,
+    applicantMemberId,
+    purpose,
+  ];
 }
 
 class LoanApplyState extends Equatable {
@@ -60,9 +61,9 @@ class LoanApplyBloc extends Bloc<LoanApplyEvent, LoanApplyState> {
   LoanApplyBloc({
     required LoanService loanService,
     required AuthSession session,
-  })  : _loanService = loanService,
-        _session = session,
-        super(const LoanApplyState()) {
+  }) : _loanService = loanService,
+       _session = session,
+       super(const LoanApplyState()) {
     on<LoanApplySubmitted>(_onSubmitted);
   }
 
@@ -88,7 +89,7 @@ class LoanApplyBloc extends Bloc<LoanApplyEvent, LoanApplyState> {
     } catch (e) {
       emit(
         LoanApplyState(
-          error: e.toString().replaceFirst('Exception: ', ''),
+          error: friendlyErrorMessage(e),
           errorId: state.errorId + 1,
         ),
       );

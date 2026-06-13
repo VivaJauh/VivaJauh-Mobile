@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../services/auth_service.dart';
+import '../../utils/error_messages.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -9,8 +10,8 @@ export 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({required AuthService authService})
-      : _authService = authService,
-        super(const AuthState()) {
+    : _authService = authService,
+      super(const AuthState()) {
     on<AuthStarted>(_onStarted);
     on<AuthOnboardingCompleted>(_onOnboardingCompleted);
     on<AuthLoginRequested>(_onLoginRequested);
@@ -52,14 +53,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthState(status: AuthStatus.unauthenticated, submitting: true));
     try {
-      final session =
-          await _authService.login(event.identifier, event.password);
+      final session = await _authService.login(
+        event.identifier,
+        event.password,
+      );
       emit(AuthState(status: AuthStatus.authenticated, session: session));
     } catch (e) {
       emit(
         AuthState(
           status: AuthStatus.unauthenticated,
-          error: e.toString(),
+          error: friendlyErrorMessage(e),
         ),
       );
     }
@@ -81,7 +84,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(
         AuthState(
           status: AuthStatus.unauthenticated,
-          error: e.toString(),
+          error: friendlyErrorMessage(e),
         ),
       );
     }

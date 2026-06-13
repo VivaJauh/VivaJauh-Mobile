@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
+import '../utils/error_messages.dart';
 import '../widgets/widgets.dart';
 
 const kKoperasiOptions = [
@@ -121,7 +122,7 @@ class _LoanApplyViewState extends State<_LoanApplyView> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: AppColors.danger,
           ),
         );

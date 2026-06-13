@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/models.dart';
 import '../../services/fund_service.dart';
+import '../../utils/error_messages.dart';
 
 sealed class FundEvent extends Equatable {
   const FundEvent();
@@ -67,25 +68,22 @@ class FundState extends Equatable {
     FundOverview? overview,
     String? error,
     FundNotice? notice,
-  }) =>
-      FundState(
-        loading: loading ?? this.loading,
-        overview: overview ?? this.overview,
-        error: error ?? this.error,
-        notice: notice ?? this.notice,
-      );
+  }) => FundState(
+    loading: loading ?? this.loading,
+    overview: overview ?? this.overview,
+    error: error ?? this.error,
+    notice: notice ?? this.notice,
+  );
 
   @override
   List<Object?> get props => [loading, overview, error, notice];
 }
 
 class FundBloc extends Bloc<FundEvent, FundState> {
-  FundBloc({
-    required FundService fundService,
-    required AuthSession session,
-  })  : _fundService = fundService,
-        _session = session,
-        super(const FundState()) {
+  FundBloc({required FundService fundService, required AuthSession session})
+    : _fundService = fundService,
+      _session = session,
+      super(const FundState()) {
     on<FundOverviewRequested>(_onOverviewRequested);
     on<FundPaymentSubmitted>(_onPaymentSubmitted);
   }
@@ -107,7 +105,7 @@ class FundBloc extends Bloc<FundEvent, FundState> {
         FundState(
           loading: false,
           overview: state.overview,
-          error: e.toString().replaceFirst('Exception: ', ''),
+          error: friendlyErrorMessage(e),
         ),
       );
     }
@@ -140,7 +138,7 @@ class FundBloc extends Bloc<FundEvent, FundState> {
         state.copyWith(
           notice: FundNotice(
             id: ++_noticeCounter,
-            message: e.toString().replaceFirst('Exception: ', ''),
+            message: friendlyErrorMessage(e),
             isError: true,
           ),
         ),

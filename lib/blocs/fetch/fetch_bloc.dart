@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../utils/error_messages.dart';
+
 sealed class FetchEvent extends Equatable {
   const FetchEvent();
 
@@ -23,11 +25,7 @@ bool isNetworkError(String? error) {
 }
 
 class FetchState<T> extends Equatable {
-  const FetchState({
-    this.status = FetchStatus.initial,
-    this.data,
-    this.error,
-  });
+  const FetchState({this.status = FetchStatus.initial, this.data, this.error});
 
   final FetchStatus status;
   final T? data;
@@ -57,7 +55,7 @@ class FetchBloc<T> extends Bloc<FetchEvent, FetchState<T>> {
         FetchState<T>(
           status: FetchStatus.failure,
           data: state.data,
-          error: e.toString().replaceFirst('Exception: ', ''),
+          error: friendlyErrorMessage(e),
         ),
       );
     }
