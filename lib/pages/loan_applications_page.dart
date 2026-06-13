@@ -40,7 +40,12 @@ class LoanApplicationsPage extends StatelessWidget {
           return _LoanApplicationsData(applications: applications);
         }
 
-        final members = await const TenantService().members(session);
+        List<MemberSummary> members;
+        try {
+          members = await const TenantService().members(session);
+        } catch (_) {
+          return _LoanApplicationsData(applications: applications);
+        }
         final repaymentMembers =
             members
                 .where(

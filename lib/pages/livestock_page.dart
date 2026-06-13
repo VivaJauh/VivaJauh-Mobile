@@ -40,11 +40,12 @@ class _LivestockPageState extends State<LivestockPage> {
     final filtered = _eventFilter == null
         ? summary.history
         : summary.history
-            .where(
-              (r) =>
-                  PayloadReader(r.payloadJson).livestockEventType == _eventFilter,
-            )
-            .toList();
+              .where(
+                (r) =>
+                    PayloadReader(r.payloadJson).livestockEventType ==
+                    _eventFilter,
+              )
+              .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ternak')),
@@ -89,7 +90,7 @@ class _LivestockPageState extends State<LivestockPage> {
                 StatCard(
                   icon: AppIcons.health,
                   value: '${summary.healthNotes}',
-                  label: 'Catatan Kes.',
+                  label: 'Catatan Kesehatan',
                   color: AppColors.success,
                 ),
                 StatCard(
@@ -107,16 +108,17 @@ class _LivestockPageState extends State<LivestockPage> {
                 child: HBarChart(
                   title: 'Populasi per Jenis',
                   unit: ' ekor',
-                  items: (summary.populationByType.entries.toList()
-                        ..sort((a, b) => b.value.compareTo(a.value)))
-                      .map(
-                        (e) => HBarItem(
-                          label: e.key,
-                          value: e.value,
-                          color: AppColors.primary,
-                        ),
-                      )
-                      .toList(),
+                  items:
+                      (summary.populationByType.entries.toList()
+                            ..sort((a, b) => b.value.compareTo(a.value)))
+                          .map(
+                            (e) => HBarItem(
+                              label: e.key,
+                              value: e.value,
+                              color: AppColors.primary,
+                            ),
+                          )
+                          .toList(),
                 ),
               ),
               const SizedBox(height: 16),
