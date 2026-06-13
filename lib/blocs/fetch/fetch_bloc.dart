@@ -14,6 +14,14 @@ class FetchRequested extends FetchEvent {
 
 enum FetchStatus { initial, loading, success, failure }
 
+bool isNetworkError(String? error) {
+  if (error == null) return false;
+  return error.contains('SocketException') ||
+      error.contains('host lookup') ||
+      error.contains('dihubungi') ||
+      error.contains('ClientException');
+}
+
 class FetchState<T> extends Equatable {
   const FetchState({
     this.status = FetchStatus.initial,

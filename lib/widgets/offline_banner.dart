@@ -7,18 +7,21 @@ class OfflineBanner extends StatelessWidget {
   const OfflineBanner({
     required this.online,
     this.pendingCount = 0,
+    this.message,
     super.key,
   });
 
   final bool online;
   final int pendingCount;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
     if (online) return const SizedBox.shrink();
-    final message = pendingCount > 0
-        ? 'Mode offline, $pendingCount catatan menunggu sinkronisasi'
-        : 'Mode offline, catatan disimpan di perangkat';
+    final text = message ??
+        (pendingCount > 0
+            ? 'Mode offline, $pendingCount catatan menunggu sinkronisasi'
+            : 'Mode offline, catatan disimpan di perangkat');
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -34,7 +37,7 @@ class OfflineBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              message,
+              text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.warningDark,
                     fontWeight: FontWeight.w700,

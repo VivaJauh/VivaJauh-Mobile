@@ -42,6 +42,8 @@ class _MembersView extends StatelessWidget {
     final showSpinner = state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
+    final offline = state.status == FetchStatus.failure &&
+        isNetworkError(state.error);
     final anggota = (state.data ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
         .toList();
@@ -59,6 +61,11 @@ class _MembersView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            if (offline)
+              const OfflineBanner(
+                online: false,
+                message: 'Mode offline, menampilkan data terakhir',
+              ),
             if (showSpinner)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
@@ -99,10 +106,12 @@ class _MembersView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               if (anggota.isEmpty)
-                const EmptyState(
-                  icon: AppIcons.members,
-                  title: 'Belum ada anggota',
-                  message: 'Anggota yang mendaftar akan muncul di sini.',
+                EmptyState(
+                  icon: offline ? AppIcons.offline : AppIcons.members,
+                  title: offline ? 'Data kosong' : 'Belum ada anggota',
+                  message: offline
+                      ? 'Tidak ada data tersimpan dan tidak ada koneksi internet.'
+                      : 'Anggota yang mendaftar akan muncul di sini.',
                 )
               else
                 for (final member in anggota) ...[

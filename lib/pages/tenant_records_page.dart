@@ -57,6 +57,11 @@ class _TenantRecordsView extends StatelessWidget {
     final state =
         context.watch<FetchBloc<List<OfflineRecord>>>().state;
     final records = state.data ?? const <OfflineRecord>[];
+    final showSpinner = state.data == null &&
+        (state.status == FetchStatus.loading ||
+            state.status == FetchStatus.initial);
+    final offline = state.status == FetchStatus.failure &&
+        isNetworkError(state.error);
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -74,9 +79,12 @@ class _TenantRecordsView extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            if (state.data == null &&
-                (state.status == FetchStatus.loading ||
-                    state.status == FetchStatus.initial))
+            if (offline)
+              const OfflineBanner(
+                online: false,
+                message: 'Mode offline, menampilkan data terakhir',
+              ),
+            if (showSpinner)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
@@ -84,10 +92,12 @@ class _TenantRecordsView extends StatelessWidget {
                 ),
               )
             else if (records.isEmpty)
-              const EmptyState(
-                icon: AppIcons.emptyInbox,
-                title: 'Belum ada catatan',
-                message: 'Belum ada aktivitas yang tersinkron ke server.',
+              EmptyState(
+                icon: offline ? AppIcons.offline : AppIcons.emptyInbox,
+                title: offline ? 'Data kosong' : 'Belum ada catatan',
+                message: offline
+                    ? 'Tidak ada data tersimpan dan tidak ada koneksi internet.'
+                    : 'Belum ada aktivitas yang tersinkron ke server.',
               )
             else
               for (final record in records) ...[

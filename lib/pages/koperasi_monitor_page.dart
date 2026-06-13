@@ -42,6 +42,8 @@ class _KoperasiMonitorView extends StatelessWidget {
     final showSpinner = state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
+    final offline = state.status == FetchStatus.failure &&
+        isNetworkError(state.error);
     final summaries = state.data ?? const <KoperasiSummary>[];
     final totalMembers =
         summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
@@ -56,6 +58,11 @@ class _KoperasiMonitorView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            if (offline)
+              const OfflineBanner(
+                online: false,
+                message: 'Mode offline, menampilkan data terakhir',
+              ),
             if (showSpinner)
               const Padding(
                 padding: EdgeInsets.only(top: 80),
@@ -95,7 +102,16 @@ class _KoperasiMonitorView extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 10),
-              for (final summary in summaries) ...[
+              if (summaries.isEmpty)
+                EmptyState(
+                  icon: offline ? AppIcons.offline : AppIcons.koperasi,
+                  title: offline ? 'Data kosong' : 'Belum ada data',
+                  message: offline
+                      ? 'Tidak ada data tersimpan dan tidak ada koneksi internet.'
+                      : 'Data koperasi akan muncul setelah sinkronisasi.',
+                )
+              else
+                for (final summary in summaries) ...[
                 _KoperasiTile(
                   summary: summary,
                   onTap: () => Navigator.push(
