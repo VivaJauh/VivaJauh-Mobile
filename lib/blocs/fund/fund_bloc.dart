@@ -80,16 +80,21 @@ class FundState extends Equatable {
 }
 
 class FundBloc extends Bloc<FundEvent, FundState> {
-  FundBloc({required FundService fundService, required AuthSession session})
-    : _fundService = fundService,
-      _session = session,
-      super(const FundState()) {
+  FundBloc({
+    required FundService fundService,
+    required AuthSession session,
+    bool online = true,
+  }) : _fundService = fundService,
+       _session = session,
+       _online = online,
+       super(const FundState()) {
     on<FundOverviewRequested>(_onOverviewRequested);
     on<FundPaymentSubmitted>(_onPaymentSubmitted);
   }
 
   final FundService _fundService;
   final AuthSession _session;
+  final bool _online;
   int _noticeCounter = 0;
 
   Future<void> _onOverviewRequested(
@@ -98,7 +103,11 @@ class FundBloc extends Bloc<FundEvent, FundState> {
   ) async {
     emit(FundState(loading: true, overview: state.overview));
     try {
-      final overview = await _fundService.overview(_session);
+      final overview = await _fundService.overview(
+        _session,
+        preferCache: !_online,
+        allowNetwork: _online,
+      );
       emit(FundState(loading: false, overview: overview));
     } catch (e) {
       emit(

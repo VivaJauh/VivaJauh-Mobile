@@ -4,12 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
+import '../services/record_service.dart';
 import '../services/tenant_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 import 'loan_apply_page.dart';
 import 'loan_detail_page.dart';
 import 'tenant_records_page.dart';
+
+const _localLoanIdPrefix = 'local-loan:';
 
 class _LoanApplicationsData {
   const _LoanApplicationsData({
@@ -37,17 +40,27 @@ class LoanApplicationsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => FetchBloc<_LoanApplicationsData>(() async {
-        if (!online) {
-          return const _LoanApplicationsData(applications: <LoanApplication>[]);
-        }
-        final applications = await const LoanService().list(session);
+        final remoteApplications = await const LoanService().list(
+          session,
+          preferCache: !online,
+          allowNetwork: online,
+        );
+        final localApplications = await _pendingLocalLoanApplications(session);
+        final applications = _mergeLoanApplications(
+          remoteApplications,
+          localApplications,
+        );
         if (session.role != 'primary_admin') {
           return _LoanApplicationsData(applications: applications);
         }
 
         List<MemberSummary> members;
         try {
-          members = await const TenantService().members(session);
+          members = await const TenantService().members(
+            session,
+            preferCache: !online,
+            allowNetwork: online,
+          );
         } catch (_) {
           return _LoanApplicationsData(applications: applications);
         }
@@ -74,6 +87,55 @@ class LoanApplicationsPage extends StatelessWidget {
   }
 }
 
+Future<List<LoanApplication>> _pendingLocalLoanApplications(
+  AuthSession session,
+) async {
+  final records = await RecordService().loadRecords(userId: session.userId);
+  return records
+      .where(
+        (record) =>
+            record.recordType == RecordType.loanApplication &&
+            record.syncStatus != SyncStatus.synced,
+      )
+      .map(_loanApplicationFromLocalRecord)
+      .toList();
+}
+
+LoanApplication _loanApplicationFromLocalRecord(OfflineRecord record) {
+  final reader = PayloadReader(record.payloadJson);
+  final memberId = reader.applicantMemberId;
+  final purpose = reader.purpose;
+
+  return LoanApplication(
+    id: '$_localLoanIdPrefix${record.id}',
+    applicantName: reader.applicantName.isEmpty
+        ? 'Pengajuan offline'
+        : reader.applicantName,
+    applicantMemberId: memberId.isEmpty ? null : memberId,
+    targetKoperasi: reader.targetKoperasi,
+    requestedAmount: reader.requestedAmount.toDouble(),
+    purpose: purpose.isEmpty ? null : purpose,
+    tenureMonths: reader.tenureMonths,
+    status: LoanStatus.pendingReview,
+    reviewNote: record.errorMessage,
+    reviewedAt: null,
+    createdAt: record.recordedAt,
+    recommendation: null,
+  );
+}
+
+List<LoanApplication> _mergeLoanApplications(
+  List<LoanApplication> remoteApplications,
+  List<LoanApplication> localApplications,
+) {
+  final merged = <LoanApplication>[...localApplications, ...remoteApplications];
+  merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return merged;
+}
+
+bool _isLocalQueuedLoan(LoanApplication application) =>
+    application.id.startsWith(_localLoanIdPrefix);
+
 class _LoanApplicationsView extends StatefulWidget {
   const _LoanApplicationsView({
     required this.session,
@@ -94,10 +156,6 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
 
   Future<void> _refresh() {
     final bloc = context.read<FetchBloc<_LoanApplicationsData>>();
-    if (!widget.online) {
-      bloc.add(const FetchRequested());
-      return Future<void>.value();
-    }
     bloc.add(const FetchRequested());
     return bloc.stream.firstWhere(
       (state) => state.status != FetchStatus.loading,
@@ -120,6 +178,8 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
     );
     if (result == null || !mounted) return;
     if (result.queued) {
+      await _refresh();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pengajuan disimpan di antrean sinkronisasi'),
@@ -142,6 +202,14 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
   }
 
   Future<void> _openDetail(LoanApplication app) async {
+    if (_isLocalQueuedLoan(app)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pengajuan ini masih menunggu sinkronisasi'),
+        ),
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -218,13 +286,18 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
               )
             else
               for (final app in filtered) ...[
-                _LoanTile(application: app, onTap: () => _openDetail(app)),
+                _LoanTile(
+                  application: app,
+                  queued: _isLocalQueuedLoan(app),
+                  onTap: () => _openDetail(app),
+                ),
                 const SizedBox(height: 8),
               ],
             if (repaymentMembers.isNotEmpty) ...[
               const SizedBox(height: 16),
               _RepaymentMembersSection(
                 session: widget.session,
+                online: widget.online,
                 members: repaymentMembers,
               ),
             ],
@@ -238,10 +311,12 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
 class _RepaymentMembersSection extends StatelessWidget {
   const _RepaymentMembersSection({
     required this.session,
+    required this.online,
     required this.members,
   });
 
   final AuthSession session;
+  final bool online;
   final List<MemberSummary> members;
 
   @override
@@ -257,7 +332,11 @@ class _RepaymentMembersSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         for (final member in members) ...[
-          _RepaymentMemberTile(session: session, member: member),
+          _RepaymentMemberTile(
+            session: session,
+            online: online,
+            member: member,
+          ),
           const SizedBox(height: 8),
         ],
       ],
@@ -266,9 +345,14 @@ class _RepaymentMembersSection extends StatelessWidget {
 }
 
 class _RepaymentMemberTile extends StatelessWidget {
-  const _RepaymentMemberTile({required this.session, required this.member});
+  const _RepaymentMemberTile({
+    required this.session,
+    required this.online,
+    required this.member,
+  });
 
   final AuthSession session;
+  final bool online;
   final MemberSummary member;
 
   @override
@@ -289,6 +373,8 @@ class _RepaymentMemberTile extends StatelessWidget {
                 final records = await const TenantService().memberRecords(
                   session,
                   member.userId,
+                  preferCache: !online,
+                  allowNetwork: online,
                 );
                 return records
                     .where(
@@ -419,31 +505,47 @@ class _StatusFilterChips extends StatelessWidget {
 }
 
 class _LoanTile extends StatelessWidget {
-  const _LoanTile({required this.application, required this.onTap});
+  const _LoanTile({
+    required this.application,
+    required this.queued,
+    required this.onTap,
+  });
 
   final LoanApplication application;
+  final bool queued;
   final VoidCallback onTap;
 
-  StatusBadge get _statusBadge => switch (application.status) {
-    LoanStatus.approved => StatusBadge.custom(
-      label: application.status.title,
-      background: const Color(0xFFDCF5E8),
-      foreground: AppColors.successDark,
-      icon: AppIcons.approve,
-    ),
-    LoanStatus.rejected => StatusBadge.custom(
-      label: application.status.title,
-      background: const Color(0xFFFFE4E1),
-      foreground: AppColors.dangerDark,
-      icon: AppIcons.reject,
-    ),
-    _ => StatusBadge.custom(
-      label: application.status.title,
-      background: AppColors.secondaryLight,
-      foreground: AppColors.warningDark,
-      icon: AppIcons.pending,
-    ),
-  };
+  StatusBadge get _statusBadge {
+    if (queued) {
+      return StatusBadge.custom(
+        label: 'Menunggu Sync',
+        background: AppColors.secondaryLight,
+        foreground: AppColors.warningDark,
+        icon: AppIcons.sync,
+      );
+    }
+
+    return switch (application.status) {
+      LoanStatus.approved => StatusBadge.custom(
+        label: application.status.title,
+        background: const Color(0xFFDCF5E8),
+        foreground: AppColors.successDark,
+        icon: AppIcons.approve,
+      ),
+      LoanStatus.rejected => StatusBadge.custom(
+        label: application.status.title,
+        background: const Color(0xFFFFE4E1),
+        foreground: AppColors.dangerDark,
+        icon: AppIcons.reject,
+      ),
+      _ => StatusBadge.custom(
+        label: application.status.title,
+        background: AppColors.secondaryLight,
+        foreground: AppColors.warningDark,
+        icon: AppIcons.pending,
+      ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +553,8 @@ class _LoanTile extends StatelessWidget {
       button: true,
       label:
           'Pengajuan ${application.applicantName} ke ${application.targetKoperasi}, '
-          '${AppFormats.rupiah(application.requestedAmount)}, ${application.status.title}',
+          '${AppFormats.rupiah(application.requestedAmount)}, '
+          '${queued ? 'menunggu sinkronisasi' : application.status.title}',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),

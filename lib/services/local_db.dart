@@ -9,17 +9,20 @@ class LocalDb {
     final dbPath = path.join(await getDatabasesPath(), 'vivajauh.db');
     _db = await openDatabase(
       dbPath,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createTables(db);
+        await _createCacheTables(db);
         await _createIndexes(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) await _dropTenantColumn(db);
+        if (oldVersion < 4) await _createCacheTables(db);
         await _createIndexes(db);
       },
       onOpen: (db) async {
         await _createTables(db);
+        await _createCacheTables(db);
         await _createIndexes(db);
       },
     );
@@ -40,6 +43,16 @@ class LocalDb {
         uploaded_at TEXT,
         error_message TEXT,
         verification_status TEXT NOT NULL
+      )
+    ''');
+  }
+
+  static Future<void> _createCacheTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_cache(
+        cache_key TEXT PRIMARY KEY,
+        value_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
   }

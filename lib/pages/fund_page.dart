@@ -16,9 +16,11 @@ class FundPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          FundBloc(fundService: const FundService(), session: session)
-            ..add(const FundOverviewRequested()),
+      create: (_) => FundBloc(
+        fundService: const FundService(),
+        session: session,
+        online: online,
+      )..add(const FundOverviewRequested()),
       child: _FundView(session: session, online: online),
     );
   }

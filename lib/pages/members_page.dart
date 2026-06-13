@@ -9,46 +9,57 @@ import '../widgets/widgets.dart';
 import 'tenant_records_page.dart';
 
 class MembersPage extends StatelessWidget {
-  const MembersPage({required this.session, super.key});
+  const MembersPage({required this.session, required this.online, super.key});
 
   final AuthSession session;
+  final bool online;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => FetchBloc<List<MemberSummary>>(
-        () => const TenantService().members(session),
+        () => const TenantService().members(
+          session,
+          preferCache: !online,
+          allowNetwork: online,
+        ),
       )..add(const FetchRequested()),
-      child: _MembersView(session: session),
+      child: _MembersView(session: session, online: online),
     );
   }
 }
 
 class _MembersView extends StatelessWidget {
-  const _MembersView({required this.session});
+  const _MembersView({required this.session, required this.online});
 
   final AuthSession session;
+  final bool online;
 
   Future<void> _refresh(BuildContext context) {
     final bloc = context.read<FetchBloc<List<MemberSummary>>>();
     bloc.add(const FetchRequested());
-    return bloc.stream
-        .firstWhere((state) => state.status != FetchStatus.loading);
+    return bloc.stream.firstWhere(
+      (state) => state.status != FetchStatus.loading,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<List<MemberSummary>>>().state;
-    final showSpinner = state.data == null &&
+    final showSpinner =
+        state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
-    final offline = state.status == FetchStatus.failure &&
-        isNetworkError(state.error);
+    final offline =
+        !online ||
+        (state.status == FetchStatus.failure && isNetworkError(state.error));
     final anggota = (state.data ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
         .toList();
-    final totalSavings =
-        anggota.fold<double>(0, (sum, m) => sum + m.savingsBalance);
+    final totalSavings = anggota.fold<double>(
+      0,
+      (sum, m) => sum + m.savingsBalance,
+    );
     final totalRecords = anggota.fold<int>(0, (sum, m) => sum + m.recordCount);
 
     return Scaffold(
@@ -100,9 +111,9 @@ class _MembersView extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Daftar Anggota',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               if (anggota.isEmpty)
@@ -123,11 +134,12 @@ class _MembersView extends StatelessWidget {
                         builder: (_) => TenantRecordsPage(
                           session: session,
                           title: member.name,
-                          subtitle:
-                              'Catatan tersinkron milik ${member.name}',
+                          subtitle: 'Catatan tersinkron milik ${member.name}',
                           loader: () => const TenantService().memberRecords(
                             session,
                             member.userId,
+                            preferCache: !online,
+                            allowNetwork: online,
                           ),
                         ),
                       ),
@@ -154,12 +166,12 @@ class _MemberTile extends StatelessWidget {
     final initials = member.name.trim().isEmpty
         ? '?'
         : member.name
-            .trim()
-            .split(' ')
-            .map((word) => word[0])
-            .take(2)
-            .join()
-            .toUpperCase();
+              .trim()
+              .split(' ')
+              .map((word) => word[0])
+              .take(2)
+              .join()
+              .toUpperCase();
 
     return Semantics(
       button: true,

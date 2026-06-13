@@ -4,9 +4,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/models.dart';
+import 'local_cache_service.dart';
 
 class LoanService {
   const LoanService();
+
+  static const _cache = LocalCacheService();
 
   static String get _baseUrl =>
       dotenv.env['API_BASE_URL'] ??
@@ -15,15 +18,47 @@ class LoanService {
   Future<List<LoanApplication>> list(
     AuthSession session, {
     LoanStatus? status,
+    bool preferCache = false,
+    bool allowNetwork = true,
   }) async {
     final query = status != null ? '?status=${status.apiValue}' : '';
-    final data = await _request(session, 'GET', '/loans$query');
+    final cacheKey = _loanListCacheKey(session, status);
+    if (preferCache) {
+      final cached = await _readCachedLoanList(cacheKey);
+      if (cached != null) return cached;
+    }
+    if (!allowNetwork) return const <LoanApplication>[];
+
+    try {
+      final data = await _request(session, 'GET', '/loans$query');
+      await _cache.putJson(cacheKey, data);
+      return _parseLoanList(data);
+    } catch (_) {
+      final cached = await _readCachedLoanList(cacheKey);
+      if (cached != null) return cached;
+      rethrow;
+    }
+  }
+
+  Future<List<LoanApplication>?> _readCachedLoanList(String cacheKey) async {
+    final cached = await _cache.getJson<List<dynamic>>(cacheKey);
+    if (cached == null) return null;
+    return _parseLoanList(cached);
+  }
+
+  List<LoanApplication> _parseLoanList(Object? data) {
     return (data as List<dynamic>)
         .map(
           (item) =>
               LoanApplication.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList();
+  }
+
+  String _loanListCacheKey(AuthSession session, LoanStatus? status) {
+    final scope = session.tenantId ?? session.userId;
+    final statusKey = status?.apiValue ?? 'all';
+    return 'loan_applications:${session.userId}:$scope:$statusKey';
   }
 
   Future<LoanApplication> getById(AuthSession session, String id) async {

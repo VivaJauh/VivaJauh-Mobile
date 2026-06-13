@@ -4,6 +4,7 @@ export 'auth_service.dart';
 export 'fund_service.dart';
 export 'loan_service.dart';
 export 'local_db.dart';
+export 'local_cache_service.dart';
 export 'record_service.dart';
 export 'sync_service.dart';
 export 'tenant_service.dart';

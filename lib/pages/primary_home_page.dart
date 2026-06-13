@@ -27,15 +27,22 @@ class PrimaryHomePage extends StatelessWidget {
     return BlocProvider(
       create: (_) => FetchBloc<_PrimaryHomeData>(() async {
         final results = await Future.wait<Object>([
-          const TenantService().members(session),
-          const LoanService().list(session),
+          const TenantService().members(
+            session,
+            preferCache: !online,
+            allowNetwork: online,
+          ),
+          const LoanService().list(
+            session,
+            preferCache: !online,
+            allowNetwork: online,
+          ),
         ]);
         return (
           results[0] as List<MemberSummary>,
           results[1] as List<LoanApplication>,
         );
-      })
-        ..add(const FetchRequested()),
+      })..add(const FetchRequested()),
       child: _PrimaryHomeView(session: session, online: online),
     );
   }
@@ -50,30 +57,35 @@ class _PrimaryHomeView extends StatelessWidget {
   Future<void> _refresh(BuildContext context) {
     final bloc = context.read<FetchBloc<_PrimaryHomeData>>();
     bloc.add(const FetchRequested());
-    return bloc.stream
-        .firstWhere((state) => state.status != FetchStatus.loading);
+    return bloc.stream.firstWhere(
+      (state) => state.status != FetchStatus.loading,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<_PrimaryHomeData>>().state;
-    final showSpinner = state.data == null &&
+    final showSpinner =
+        state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
     final applications = state.data?.$2 ?? const <LoanApplication>[];
     final anggota = (state.data?.$1 ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
         .toList();
-    final totalSavings =
-        anggota.fold<double>(0, (sum, m) => sum + m.savingsBalance);
+    final totalSavings = anggota.fold<double>(
+      0,
+      (sum, m) => sum + m.savingsBalance,
+    );
     final pendingApplications = applications
         .where((a) => a.status == LoanStatus.pendingReview)
         .length;
     final recentApplications = applications.take(3).toList();
-    final topMembers = (anggota.toList()
-          ..sort((a, b) => b.savingsBalance.compareTo(a.savingsBalance)))
-        .take(4)
-        .toList();
+    final topMembers =
+        (anggota.toList()
+              ..sort((a, b) => b.savingsBalance.compareTo(a.savingsBalance)))
+            .take(4)
+            .toList();
 
     return SafeArea(
       bottom: false,
@@ -86,134 +98,135 @@ class _PrimaryHomeView extends StatelessWidget {
             if (!online) const OfflineBanner(online: false),
             Text(
               'Pengurus Primer',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          Text(
-            session.koperasiName ?? session.name,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
-                  fontSize: 22,
-                ),
-          ),
-          const SizedBox(height: 16),
-          if (showSpinner)
-            const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w600,
               ),
-            )
-          else ...[
-            StatCardRow(
-              children: [
-                StatCard(
-                  icon: AppIcons.members,
-                  value: '${anggota.length}',
-                  label: 'Anggota Aktif',
-                  color: AppColors.primary,
-                ),
-                StatCard(
-                  icon: AppIcons.savings,
-                  value: AppFormats.rupiahCompact(totalSavings),
-                  label: 'Total Simpanan',
-                  color: AppColors.success,
-                ),
-              ],
             ),
-            const SizedBox(height: 8),
-            StatCardRow(
-              children: [
-                StatCard(
-                  icon: AppIcons.loanApplication,
-                  value: '$pendingApplications',
-                  label: 'Pengajuan Berjalan',
-                  color: AppColors.warning,
-                ),
-                StatCard(
-                  icon: AppIcons.records,
-                  value:
-                      '${anggota.fold<int>(0, (sum, m) => sum + m.recordCount)}',
-                  label: 'Catatan Anggota',
-                  color: AppColors.secondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
             Text(
-              'Anggota dengan Simpanan Terbesar',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              session.koperasiName ?? session.name,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.text,
+                fontSize: 22,
+              ),
             ),
-            const SizedBox(height: 10),
-            if (topMembers.isEmpty)
-              const EmptyState(
-                icon: AppIcons.members,
-                title: 'Belum ada anggota',
-                message: 'Anggota yang mendaftar akan muncul di sini.',
+            const SizedBox(height: 16),
+            if (showSpinner)
+              const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
               )
-            else
-              for (final member in topMembers) ...[
-                _MemberRow(
-                  member: member,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TenantRecordsPage(
-                        session: session,
-                        title: member.name,
-                        subtitle:
-                            'Catatan tersinkron milik ${member.name}',
-                        loader: () => const TenantService().memberRecords(
-                          session,
-                          member.userId,
+            else ...[
+              StatCardRow(
+                children: [
+                  StatCard(
+                    icon: AppIcons.members,
+                    value: '${anggota.length}',
+                    label: 'Anggota Aktif',
+                    color: AppColors.primary,
+                  ),
+                  StatCard(
+                    icon: AppIcons.savings,
+                    value: AppFormats.rupiahCompact(totalSavings),
+                    label: 'Total Simpanan',
+                    color: AppColors.success,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              StatCardRow(
+                children: [
+                  StatCard(
+                    icon: AppIcons.loanApplication,
+                    value: '$pendingApplications',
+                    label: 'Pengajuan Berjalan',
+                    color: AppColors.warning,
+                  ),
+                  StatCard(
+                    icon: AppIcons.records,
+                    value:
+                        '${anggota.fold<int>(0, (sum, m) => sum + m.recordCount)}',
+                    label: 'Catatan Anggota',
+                    color: AppColors.secondary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Anggota dengan Simpanan Terbesar',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              if (topMembers.isEmpty)
+                const EmptyState(
+                  icon: AppIcons.members,
+                  title: 'Belum ada anggota',
+                  message: 'Anggota yang mendaftar akan muncul di sini.',
+                )
+              else
+                for (final member in topMembers) ...[
+                  _MemberRow(
+                    member: member,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TenantRecordsPage(
+                          session: session,
+                          title: member.name,
+                          subtitle: 'Catatan tersinkron milik ${member.name}',
+                          loader: () => const TenantService().memberRecords(
+                            session,
+                            member.userId,
+                            preferCache: !online,
+                            allowNetwork: online,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            const SizedBox(height: 12),
-            Text(
-              'Pengajuan Pinjaman Terbaru',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            if (recentApplications.isEmpty)
-              const EmptyState(
-                icon: AppIcons.loanApplication,
-                title: 'Belum ada pengajuan',
-                message:
-                    'Ajukan pembiayaan untuk anggota lewat tab Pinjaman.',
-              )
-            else
-              for (final app in recentApplications) ...[
-                _ApplicationRow(
-                  application: app,
-                  onTap: () async {
-                    final bloc = context.read<FetchBloc<_PrimaryHomeData>>();
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LoanDetailPage(
-                          session: session,
-                          applicationId: app.id,
+                  const SizedBox(height: 8),
+                ],
+              const SizedBox(height: 12),
+              Text(
+                'Pengajuan Pinjaman Terbaru',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              if (recentApplications.isEmpty)
+                const EmptyState(
+                  icon: AppIcons.loanApplication,
+                  title: 'Belum ada pengajuan',
+                  message:
+                      'Ajukan pembiayaan untuk anggota lewat tab Pinjaman.',
+                )
+              else
+                for (final app in recentApplications) ...[
+                  _ApplicationRow(
+                    application: app,
+                    onTap: () async {
+                      final bloc = context.read<FetchBloc<_PrimaryHomeData>>();
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LoanDetailPage(
+                            session: session,
+                            applicationId: app.id,
+                          ),
                         ),
-                      ),
-                    );
-                    if (!bloc.isClosed) bloc.add(const FetchRequested());
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-          ],
+                      );
+                      if (!bloc.isClosed) bloc.add(const FetchRequested());
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+            ],
           ],
         ),
       ),
@@ -268,11 +281,7 @@ class _MemberRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(
-              AppIcons.chevronRight,
-              size: 13,
-              color: AppColors.muted,
-            ),
+            const Icon(AppIcons.chevronRight, size: 13, color: AppColors.muted),
           ],
         ),
       ),
@@ -287,10 +296,10 @@ class _ApplicationRow extends StatelessWidget {
   final VoidCallback onTap;
 
   Color get _statusColor => switch (application.status) {
-        LoanStatus.approved => AppColors.successDark,
-        LoanStatus.rejected => AppColors.dangerDark,
-        _ => AppColors.warningDark,
-      };
+    LoanStatus.approved => AppColors.successDark,
+    LoanStatus.rejected => AppColors.dangerDark,
+    _ => AppColors.warningDark,
+  };
 
   @override
   Widget build(BuildContext context) {

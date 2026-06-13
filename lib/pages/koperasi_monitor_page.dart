@@ -9,46 +9,63 @@ import '../widgets/widgets.dart';
 import 'tenant_records_page.dart';
 
 class KoperasiMonitorPage extends StatelessWidget {
-  const KoperasiMonitorPage({required this.session, super.key});
+  const KoperasiMonitorPage({
+    required this.session,
+    required this.online,
+    super.key,
+  });
 
   final AuthSession session;
+  final bool online;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => FetchBloc<List<KoperasiSummary>>(
-        () => const TenantService().koperasiSummaries(session),
+        () => const TenantService().koperasiSummaries(
+          session,
+          preferCache: !online,
+          allowNetwork: online,
+        ),
       )..add(const FetchRequested()),
-      child: _KoperasiMonitorView(session: session),
+      child: _KoperasiMonitorView(session: session, online: online),
     );
   }
 }
 
 class _KoperasiMonitorView extends StatelessWidget {
-  const _KoperasiMonitorView({required this.session});
+  const _KoperasiMonitorView({required this.session, required this.online});
 
   final AuthSession session;
+  final bool online;
 
   Future<void> _refresh(BuildContext context) {
     final bloc = context.read<FetchBloc<List<KoperasiSummary>>>();
     bloc.add(const FetchRequested());
-    return bloc.stream
-        .firstWhere((state) => state.status != FetchStatus.loading);
+    return bloc.stream.firstWhere(
+      (state) => state.status != FetchStatus.loading,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FetchBloc<List<KoperasiSummary>>>().state;
-    final showSpinner = state.data == null &&
+    final showSpinner =
+        state.data == null &&
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
-    final offline = state.status == FetchStatus.failure &&
-        isNetworkError(state.error);
+    final offline =
+        !online ||
+        (state.status == FetchStatus.failure && isNetworkError(state.error));
     final summaries = state.data ?? const <KoperasiSummary>[];
-    final totalMembers =
-        summaries.fold<int>(0, (sum, s) => sum + s.memberCount);
-    final totalSavings =
-        summaries.fold<double>(0, (sum, s) => sum + s.savingsTotal);
+    final totalMembers = summaries.fold<int>(
+      0,
+      (sum, s) => sum + s.memberCount,
+    );
+    final totalSavings = summaries.fold<double>(
+      0,
+      (sum, s) => sum + s.savingsTotal,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Monitoring Koperasi')),
@@ -97,9 +114,9 @@ class _KoperasiMonitorView extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Ringkasan per Koperasi',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               if (summaries.isEmpty)
@@ -112,26 +129,28 @@ class _KoperasiMonitorView extends StatelessWidget {
                 )
               else
                 for (final summary in summaries) ...[
-                _KoperasiTile(
-                  summary: summary,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TenantRecordsPage(
-                        session: session,
-                        title: summary.koperasiName,
-                        subtitle:
-                            'Catatan tersinkron ${summary.koperasiName}',
-                        loader: () => const TenantService().tenantRecords(
-                          session,
-                          summary.tenantId,
+                  _KoperasiTile(
+                    summary: summary,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TenantRecordsPage(
+                          session: session,
+                          title: summary.koperasiName,
+                          subtitle:
+                              'Catatan tersinkron ${summary.koperasiName}',
+                          loader: () => const TenantService().tenantRecords(
+                            session,
+                            summary.tenantId,
+                            preferCache: !online,
+                            allowNetwork: online,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 8),
+                ],
             ],
           ],
         ),
@@ -222,14 +241,8 @@ class _KoperasiTile extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _MiniStat(
-                    label: 'Anggota',
-                    value: '${summary.memberCount}',
-                  ),
-                  _MiniStat(
-                    label: 'Catatan',
-                    value: '${summary.recordCount}',
-                  ),
+                  _MiniStat(label: 'Anggota', value: '${summary.memberCount}'),
+                  _MiniStat(label: 'Catatan', value: '${summary.recordCount}'),
                   _MiniStat(
                     label: 'Simpanan',
                     value: AppFormats.rupiahCompact(summary.savingsTotal),

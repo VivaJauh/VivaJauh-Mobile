@@ -128,7 +128,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   List<Widget> get _primaryPages => [
     PrimaryHomePage(session: widget.session, online: widget.online),
-    MembersPage(session: widget.session),
+    MembersPage(session: widget.session, online: widget.online),
     FundPage(session: widget.session, online: widget.online),
     LoanApplicationsPage(
       session: widget.session,
@@ -174,7 +174,7 @@ class _DashboardPageState extends State<DashboardPage> {
       online: widget.online,
       onAddRecord: widget.onAddRecord,
     ),
-    KoperasiMonitorPage(session: widget.session),
+    KoperasiMonitorPage(session: widget.session, online: widget.online),
     _profilePage,
   ];
 
