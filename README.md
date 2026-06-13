@@ -7,6 +7,10 @@ VivaJauh Mobile menggunakan BLoC pattern untuk memisahkan UI, event, state, dan 
 
 Pola ini dipakai untuk fitur utama seperti autentikasi, sinkronisasi offline, record operasional, dana koperasi, dan pengajuan pinjaman.
 
+## Documentation
+
+- [Project Drive](https://drive.google.com/drive/folders/1Vb6O0SQcC0dWbQb7LDRBHbaWPV7EpNkP?usp=sharing) - aplikasi, ERD, PPT, dan dokumen pendukung.
+
 ## Getting Started
 
 1. Install Flutter SDK (>= 3.10.8):
