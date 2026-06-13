@@ -70,7 +70,12 @@ class _SecondaryHomeView extends StatelessWidget {
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
     final summaries = state.data?.$1 ?? const <KoperasiSummary>[];
-    final pendingReview = state.data?.$2 ?? const <LoanApplication>[];
+    final pendingReview = (state.data?.$2 ?? const <LoanApplication>[])
+        .where(
+          (application) =>
+              application.approvalRole == LoanApprovalRole.secondaryAdmin,
+        )
+        .toList();
     final totalMembers = summaries.fold<int>(
       0,
       (sum, s) => sum + s.memberCount,
@@ -86,7 +91,7 @@ class _SecondaryHomeView extends StatelessWidget {
         onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
           children: [
             if (!online) const OfflineBanner(online: false),
             Text(

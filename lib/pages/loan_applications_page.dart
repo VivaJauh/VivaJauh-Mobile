@@ -46,9 +46,12 @@ class LoanApplicationsPage extends StatelessWidget {
           allowNetwork: online,
         );
         final localApplications = await _pendingLocalLoanApplications(session);
-        final applications = _mergeLoanApplications(
-          remoteApplications,
-          localApplications,
+        final applications = _visibleLoanApplications(
+          session,
+          _mergeLoanApplications(
+            remoteApplications,
+            localApplications,
+          ),
         );
         if (session.role != 'primary_admin') {
           return _LoanApplicationsData(applications: applications);
@@ -97,14 +100,21 @@ Future<List<LoanApplication>> _pendingLocalLoanApplications(
             record.recordType == RecordType.loanApplication &&
             record.syncStatus != SyncStatus.synced,
       )
-      .map(_loanApplicationFromLocalRecord)
+      .map((record) => _loanApplicationFromLocalRecord(session, record))
       .toList();
 }
 
-LoanApplication _loanApplicationFromLocalRecord(OfflineRecord record) {
+LoanApplication _loanApplicationFromLocalRecord(
+  AuthSession session,
+  OfflineRecord record,
+) {
   final reader = PayloadReader(record.payloadJson);
   final memberId = reader.applicantMemberId;
   final purpose = reader.purpose;
+  final approvalRole = _loanApprovalRoleFor(
+    session,
+    reader.targetKoperasi,
+  );
 
   return LoanApplication(
     id: '$_localLoanIdPrefix${record.id}',
@@ -117,6 +127,8 @@ LoanApplication _loanApplicationFromLocalRecord(OfflineRecord record) {
     purpose: purpose.isEmpty ? null : purpose,
     tenureMonths: reader.tenureMonths,
     status: LoanStatus.pendingReview,
+    approvalRole: approvalRole,
+    submittedBy: session.userId,
     reviewNote: record.errorMessage,
     reviewedAt: null,
     createdAt: record.recordedAt,
@@ -132,6 +144,44 @@ List<LoanApplication> _mergeLoanApplications(
   merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   return merged;
 }
+
+List<LoanApplication> _visibleLoanApplications(
+  AuthSession session,
+  List<LoanApplication> applications,
+) {
+  return switch (session.role) {
+    'member' => applications
+        .where(
+          (application) =>
+              application.submittedBy == session.userId ||
+              _isLocalQueuedLoan(application),
+        )
+        .toList(),
+    'primary_admin' => applications
+        .where(
+          (application) =>
+              application.approvalRole == LoanApprovalRole.primaryAdmin,
+        )
+        .toList(),
+    'secondary_admin' => applications
+        .where(
+          (application) =>
+              application.approvalRole == LoanApprovalRole.secondaryAdmin,
+        )
+        .toList(),
+    _ => applications,
+  };
+}
+
+LoanApprovalRole _loanApprovalRoleFor(AuthSession session, String targetKoperasi) {
+  final ownKoperasi = session.koperasiName ?? '';
+  return _normalizeKoperasi(targetKoperasi) == _normalizeKoperasi(ownKoperasi)
+      ? LoanApprovalRole.primaryAdmin
+      : LoanApprovalRole.secondaryAdmin;
+}
+
+String _normalizeKoperasi(String value) =>
+    value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
 bool _isLocalQueuedLoan(LoanApplication application) =>
     application.id.startsWith(_localLoanIdPrefix);
@@ -237,16 +287,7 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
         : items.where((a) => a.status == _statusFilter).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengajuan Pinjaman'),
-        actions: [
-          IconButton(
-            onPressed: showSpinner ? null : _refresh,
-            tooltip: 'Muat ulang daftar',
-            icon: const Icon(AppIcons.refresh, size: 20),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Pengajuan Pinjaman')),
       floatingActionButton: _canApply
           ? FloatingActionButton(
               onPressed: _openApply,
@@ -258,7 +299,7 @@ class _LoanApplicationsViewState extends State<_LoanApplicationsView> {
         onRefresh: _refresh,
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 128),
           children: [
             if (!widget.online)
               const Padding(

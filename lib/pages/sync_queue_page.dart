@@ -281,7 +281,7 @@ class _SyncTile extends StatelessWidget {
           if (onRetry != null)
             IconButton(
               onPressed: onRetry,
-              icon: const Icon(AppIcons.refresh, size: 18),
+              icon: const Icon(AppIcons.sync, size: 18),
               color: AppColors.primary,
               tooltip: 'Coba lagi',
             ),

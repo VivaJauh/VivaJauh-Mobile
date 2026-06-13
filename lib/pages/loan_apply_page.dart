@@ -172,7 +172,7 @@ class _LoanApplyViewState extends State<_LoanApplyView> {
       child: Scaffold(
         appBar: AppBar(title: const Text('Ajukan Pinjaman')),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           child: Form(
             key: _formKey,
             child: Column(

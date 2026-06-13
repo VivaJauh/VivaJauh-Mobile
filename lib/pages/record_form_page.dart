@@ -61,7 +61,7 @@ class _RecordFormPageState extends State<RecordFormPage> {
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

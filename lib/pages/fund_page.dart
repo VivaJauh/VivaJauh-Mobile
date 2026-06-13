@@ -91,21 +91,12 @@ class _FundView extends StatelessWidget {
         );
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(_title),
-          actions: [
-            IconButton(
-              onPressed: showSpinner ? null : () => _refresh(context),
-              tooltip: 'Muat ulang dana',
-              icon: const Icon(AppIcons.refresh, size: 20),
-            ),
-          ],
-        ),
+        appBar: AppBar(title: Text(_title)),
         body: RefreshIndicator(
           onRefresh: () => _refresh(context),
           color: AppColors.primary,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             children: [
               if (!online)
                 const Padding(
@@ -126,8 +117,10 @@ class _FundView extends StatelessWidget {
                   message: 'Data dana akan muncul setelah sinkronisasi.',
                 )
               else ...[
-                _DueInfoCard(overview: overview),
-                const SizedBox(height: 12),
+                if (isMember) ...[
+                  _DueInfoCard(overview: overview),
+                  const SizedBox(height: 12),
+                ],
                 StatCardRow(
                   children: [
                     StatCard(

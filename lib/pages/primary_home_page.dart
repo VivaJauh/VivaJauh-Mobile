@@ -70,6 +70,12 @@ class _PrimaryHomeView extends StatelessWidget {
         (state.status == FetchStatus.loading ||
             state.status == FetchStatus.initial);
     final applications = state.data?.$2 ?? const <LoanApplication>[];
+    final reviewableApplications = applications
+        .where(
+          (application) =>
+              application.approvalRole == LoanApprovalRole.primaryAdmin,
+        )
+        .toList();
     final anggota = (state.data?.$1 ?? const <MemberSummary>[])
         .where((m) => m.role == 'member')
         .toList();
@@ -77,10 +83,10 @@ class _PrimaryHomeView extends StatelessWidget {
       0,
       (sum, m) => sum + m.savingsBalance,
     );
-    final pendingApplications = applications
+    final pendingApplications = reviewableApplications
         .where((a) => a.status == LoanStatus.pendingReview)
         .length;
-    final recentApplications = applications.take(3).toList();
+    final recentApplications = reviewableApplications.take(3).toList();
     final topMembers =
         (anggota.toList()
               ..sort((a, b) => b.savingsBalance.compareTo(a.savingsBalance)))
@@ -93,7 +99,7 @@ class _PrimaryHomeView extends StatelessWidget {
         onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
           children: [
             if (!online) const OfflineBanner(online: false),
             Text(

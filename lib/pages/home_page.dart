@@ -66,7 +66,7 @@ class HomePage extends StatelessWidget {
         onRefresh: onRefreshRecords,
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
           children: [
             OfflineBanner(online: online, pendingCount: _pendingCount),
             Row(

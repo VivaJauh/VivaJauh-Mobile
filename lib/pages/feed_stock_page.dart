@@ -51,7 +51,7 @@ class FeedStockPage extends StatelessWidget {
         onRefresh: onRefreshRecords,
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
           children: [
             Container(
               padding: const EdgeInsets.all(20),

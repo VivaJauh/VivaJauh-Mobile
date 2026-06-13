@@ -63,7 +63,7 @@ class _SavingsLoanPageState extends State<SavingsLoanPage> {
         onRefresh: widget.onRefreshRecords,
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 128),
           children: [
             _SavingsHeroCard(balance: summary.savingsBalance),
             const SizedBox(height: 16),

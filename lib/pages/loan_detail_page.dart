@@ -35,7 +35,15 @@ class _LoanDetailView extends StatelessWidget {
 
   final AuthSession session;
 
-  bool get _isSecondaryAdmin => session.role == 'secondary_admin';
+  bool _canDecide(LoanApplication application) {
+    if (session.role == 'primary_admin') {
+      return application.approvalRole == LoanApprovalRole.primaryAdmin;
+    }
+    if (session.role == 'secondary_admin') {
+      return application.approvalRole == LoanApprovalRole.secondaryAdmin;
+    }
+    return false;
+  }
 
   bool _isNetworkError(String error) =>
       error.contains('SocketException') ||
@@ -139,7 +147,7 @@ class _LoanDetailView extends StatelessWidget {
                     onRefresh: () => _refresh(context),
                     color: AppColors.primary,
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                       children: [
                         _ApplicationCard(application: app!),
                         const SizedBox(height: 12),
@@ -160,7 +168,7 @@ class _LoanDetailView extends StatelessWidget {
                           ],
                         ],
                         if (app.status == LoanStatus.pendingReview &&
-                            _isSecondaryAdmin)
+                            _canDecide(app))
                           _DecisionButtons(
                             deciding: state.deciding,
                             onApprove: () =>

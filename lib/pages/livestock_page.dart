@@ -67,7 +67,7 @@ class _LivestockPageState extends State<LivestockPage> {
         onRefresh: widget.onRefreshRecords,
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
           children: [
             StatCardRow(
               children: [

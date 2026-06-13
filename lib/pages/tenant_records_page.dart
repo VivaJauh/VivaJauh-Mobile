@@ -69,7 +69,7 @@ class _TenantRecordsView extends StatelessWidget {
         onRefresh: () => _refresh(context),
         color: AppColors.primary,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           children: [
             Text(
               subtitle,

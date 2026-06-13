@@ -143,7 +143,7 @@ class _RecordsPageState extends State<RecordsPage> {
                     onRefresh: widget.onRefreshRecords,
                     color: AppColors.primary,
                     child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 128),
                       itemCount: records.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, i) => RecordTile(

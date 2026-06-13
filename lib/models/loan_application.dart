@@ -2,6 +2,8 @@ enum LoanStatus { draft, pendingReview, approved, rejected }
 
 enum LoanRiskLevel { low, medium, high }
 
+enum LoanApprovalRole { primaryAdmin, secondaryAdmin }
+
 extension LoanStatusX on LoanStatus {
   String get apiValue => switch (this) {
         LoanStatus.draft => 'draft',
@@ -37,6 +39,18 @@ extension LoanRiskLevelX on LoanRiskLevel {
         'high' => LoanRiskLevel.high,
         _ => LoanRiskLevel.medium,
       };
+}
+
+extension LoanApprovalRoleX on LoanApprovalRole {
+  String get apiValue => switch (this) {
+    LoanApprovalRole.primaryAdmin => 'primary_admin',
+    LoanApprovalRole.secondaryAdmin => 'secondary_admin',
+  };
+
+  static LoanApprovalRole fromApiValue(String? value) => switch (value) {
+    'primary_admin' => LoanApprovalRole.primaryAdmin,
+    _ => LoanApprovalRole.secondaryAdmin,
+  };
 }
 
 class LoanEvidence {
@@ -200,6 +214,8 @@ class LoanApplication {
     required this.purpose,
     required this.tenureMonths,
     required this.status,
+    required this.approvalRole,
+    required this.submittedBy,
     required this.reviewNote,
     required this.reviewedAt,
     required this.createdAt,
@@ -214,6 +230,8 @@ class LoanApplication {
   final String? purpose;
   final int tenureMonths;
   final LoanStatus status;
+  final LoanApprovalRole approvalRole;
+  final String submittedBy;
   final String? reviewNote;
   final DateTime? reviewedAt;
   final DateTime createdAt;
@@ -229,6 +247,10 @@ class LoanApplication {
         purpose: json['purpose'] as String?,
         tenureMonths: (json['tenure_months'] as num? ?? 0).toInt(),
         status: LoanStatusX.fromApiValue(json['status'] as String?),
+        approvalRole: LoanApprovalRoleX.fromApiValue(
+          json['approval_role'] as String?,
+        ),
+        submittedBy: json['submitted_by'] as String? ?? '',
         reviewNote: json['review_note'] as String?,
         reviewedAt: json['reviewed_at'] != null
             ? DateTime.tryParse(json['reviewed_at'] as String)
