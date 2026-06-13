@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/blocs.dart';
 import '../models/models.dart';
 import '../services/loan_service.dart';
 import '../utils/formats.dart';
 import '../widgets/widgets.dart';
 
-class LoanDetailPage extends StatefulWidget {
+class LoanDetailPage extends StatelessWidget {
   const LoanDetailPage({
     required this.session,
     required this.applicationId,
@@ -16,119 +18,42 @@ class LoanDetailPage extends StatefulWidget {
   final String applicationId;
 
   @override
-  State<LoanDetailPage> createState() => _LoanDetailPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => LoanDetailBloc(
+        loanService: const LoanService(),
+        session: session,
+        applicationId: applicationId,
+      )..add(const LoanDetailRequested()),
+      child: _LoanDetailView(session: session),
+    );
+  }
 }
 
-class _LoanDetailPageState extends State<LoanDetailPage> {
-  final _loanService = const LoanService();
+class _LoanDetailView extends StatelessWidget {
+  const _LoanDetailView({required this.session});
 
-  LoanApplication? _application;
-  LoanAuditTrail? _auditTrail;
-  bool _loading = true;
-  bool _analyzing = false;
-  bool _deciding = false;
-  String? _error;
+  final AuthSession session;
 
-  bool get _isSecondaryAdmin => widget.session.role == 'secondary_admin';
+  bool get _isSecondaryAdmin => session.role == 'secondary_admin';
 
-  bool _canDecide(LoanApplication app) => _isSecondaryAdmin;
-
-  Future<void> _loadAuditTrail() async {
-    if (!_isSecondaryAdmin) return;
-    try {
-      final trail = await _loanService.auditTrail(
-        widget.session,
-        widget.applicationId,
-      );
-      if (!mounted) return;
-      setState(() => _auditTrail = trail);
-    } catch (_) {
-    }
+  Future<void> _refresh(BuildContext context) {
+    final bloc = context.read<LoanDetailBloc>();
+    bloc.add(const LoanDetailRequested());
+    return bloc.stream.firstWhere((state) => !state.loading);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Future<void> _decide(BuildContext context, {required bool approve}) async {
+    final bloc = context.read<LoanDetailBloc>();
+    final note = await _askReviewNote(context, approve: approve);
+    if (note == null || bloc.isClosed) return;
+    bloc.add(LoanDecisionSubmitted(approve: approve, note: note));
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      var app = await _loanService.getById(
-        widget.session,
-        widget.applicationId,
-      );
-      if (app.recommendation == null) {
-        if (mounted) setState(() => _analyzing = true);
-        await _loanService.generateRecommendation(widget.session, app.id);
-        app = await _loanService.getById(widget.session, app.id);
-      }
-      if (!mounted) return;
-      setState(() {
-        _application = app;
-        _loading = false;
-        _analyzing = false;
-      });
-      await _loadAuditTrail();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-        _analyzing = false;
-      });
-    }
-  }
-
-  Future<void> _decide({required bool approve}) async {
-    final note = await _askReviewNote(approve: approve);
-    if (note == null || !mounted) return;
-
-    setState(() => _deciding = true);
-    try {
-      final updated = approve
-          ? await _loanService.approve(
-              widget.session,
-              widget.applicationId,
-              note,
-            )
-          : await _loanService.reject(
-              widget.session,
-              widget.applicationId,
-              note,
-            );
-      if (!mounted) return;
-      setState(() {
-        _application = updated;
-        _deciding = false;
-      });
-      await _loadAuditTrail();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            approve ? 'Pengajuan disetujui' : 'Pengajuan ditolak',
-          ),
-          backgroundColor: approve ? AppColors.success : AppColors.danger,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _deciding = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-    }
-  }
-
-  Future<String?> _askReviewNote({required bool approve}) {
+  Future<String?> _askReviewNote(
+    BuildContext context, {
+    required bool approve,
+  }) {
     final controller = TextEditingController();
     return showModalBottomSheet<String>(
       context: context,
@@ -154,80 +79,97 @@ class _LoanDetailPageState extends State<LoanDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = _application;
+    final state = context.watch<LoanDetailBloc>().state;
+    final app = state.application;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Pengajuan')),
-      body: _loading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(color: AppColors.primary),
-                  if (_analyzing) ...[
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Menganalisis riwayat lintas koperasi…',
-                      style: TextStyle(
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w600,
+    return BlocListener<LoanDetailBloc, LoanDetailState>(
+      listenWhen: (previous, current) =>
+          current.notice != null && previous.notice != current.notice,
+      listener: (context, state) {
+        final notice = state.notice!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(notice.message),
+            backgroundColor:
+                notice.isError ? AppColors.danger : AppColors.success,
+          ),
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Detail Pengajuan')),
+        body: state.loading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: AppColors.primary),
+                    if (state.analyzing) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Menganalisis riwayat lintas koperasi…',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
-              ),
-            )
-          : _error != null
-              ? Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: EmptyState(
-                    icon: AppIcons.warning,
-                    title: 'Gagal memuat',
-                    message: _error!,
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  color: AppColors.primary,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    children: [
-                      _ApplicationCard(application: app!),
-                      const SizedBox(height: 12),
-                      if (app.recommendation != null) ...[
-                        _RecommendationCard(
-                          recommendation: app.recommendation!,
-                        ),
+                ),
+              )
+            : state.error != null
+                ? Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: EmptyState(
+                      icon: AppIcons.warning,
+                      title: 'Gagal memuat',
+                      message: state.error!,
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () => _refresh(context),
+                    color: AppColors.primary,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      children: [
+                        _ApplicationCard(application: app!),
                         const SizedBox(height: 12),
-                        _KeyStatsSection(
-                          keyStats: app.recommendation!.keyStats,
-                        ),
-                        const SizedBox(height: 12),
-                        if (app.recommendation!.evidence.isNotEmpty) ...[
-                          _EvidenceSection(
-                            evidence: app.recommendation!.evidence,
+                        if (app.recommendation != null) ...[
+                          _RecommendationCard(
+                            recommendation: app.recommendation!,
                           ),
                           const SizedBox(height: 12),
+                          _KeyStatsSection(
+                            keyStats: app.recommendation!.keyStats,
+                          ),
+                          const SizedBox(height: 12),
+                          if (app.recommendation!.evidence.isNotEmpty) ...[
+                            _EvidenceSection(
+                              evidence: app.recommendation!.evidence,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ],
+                        if (app.status == LoanStatus.pendingReview &&
+                            _isSecondaryAdmin)
+                          _DecisionButtons(
+                            deciding: state.deciding,
+                            onApprove: () =>
+                                _decide(context, approve: true),
+                            onReject: () =>
+                                _decide(context, approve: false),
+                          )
+                        else if (app.status != LoanStatus.pendingReview)
+                          _DecisionResultCard(application: app)
+                        else
+                          const _AwaitingAdminCard(),
+                        if (state.trail != null) ...[
+                          const SizedBox(height: 12),
+                          _AuditTrailSection(trail: state.trail!),
                         ],
                       ],
-                      if (app.status == LoanStatus.pendingReview &&
-                          _canDecide(app))
-                        _DecisionButtons(
-                          deciding: _deciding,
-                          onApprove: () => _decide(approve: true),
-                          onReject: () => _decide(approve: false),
-                        )
-                      else if (app.status != LoanStatus.pendingReview)
-                        _DecisionResultCard(application: app)
-                      else
-                        const _AwaitingAdminCard(),
-                      if (_auditTrail != null) ...[
-                        const SizedBox(height: 12),
-                        _AuditTrailSection(trail: _auditTrail!),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
+      ),
     );
   }
 }
