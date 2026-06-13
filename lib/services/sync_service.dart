@@ -8,7 +8,7 @@ import 'record_service.dart';
 
 class SyncService {
   SyncService({required RecordService recordService})
-      : _recordService = recordService;
+    : _recordService = recordService;
 
   final RecordService _recordService;
 
@@ -23,21 +23,27 @@ class SyncService {
     if (target.syncStatus == SyncStatus.failed ||
         target.syncStatus == SyncStatus.conflict) {
       await _recordService.replaceRecord(
-        target.copyWith(syncStatus: SyncStatus.pending, errorMessage: null),
+        _cleanRecord(target, syncStatus: SyncStatus.pending),
       );
     }
-    return syncPending(token);
+    return syncAll(token);
+  }
+
+  Future<List<OfflineRecord>> syncAll(String token) async {
+    await syncPending(token);
+    return pullSynced(token);
   }
 
   Future<List<OfflineRecord>> syncPending(String token) async {
     final records = await _recordService.loadRecords();
-    final pending =
-        records.where((r) => r.syncStatus == SyncStatus.pending).toList();
+    final pending = records
+        .where((r) => r.syncStatus == SyncStatus.pending)
+        .toList();
     if (pending.isEmpty) return records;
 
     for (final record in pending) {
       await _recordService.replaceRecord(
-        record.copyWith(syncStatus: SyncStatus.syncing),
+        _cleanRecord(record, syncStatus: SyncStatus.syncing),
       );
     }
 
@@ -48,9 +54,7 @@ class SyncService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'items': pending.map((r) => r.toJson()).toList(),
-        }),
+        body: jsonEncode({'items': pending.map((r) => r.toJson()).toList()}),
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -75,10 +79,10 @@ class SyncService {
             errorMessage: result['error_code'] as String?,
           );
         }
-        return record.copyWith(
+        return _cleanRecord(
+          record,
           syncStatus: SyncStatus.synced,
-          uploadedAt:
-              DateTime.tryParse(result['uploaded_at'] as String? ?? ''),
+          uploadedAt: DateTime.tryParse(result['uploaded_at'] as String? ?? ''),
           verificationStatus: VerificationStatusX.fromApiValue(
             result['verification_status'] as String? ?? 'unverified',
           ),
@@ -99,6 +103,85 @@ class SyncService {
       }).toList();
       await _recordService.saveRecords(updated);
       return updated;
+    }
+  }
+
+  Future<List<OfflineRecord>> pullSynced(String token) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/sync/items'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _errorMessage(response.body);
+      throw Exception(message ?? 'Gagal mengambil data sinkronisasi');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = body['data'] as List<dynamic>;
+    final remoteRecords = data
+        .map((item) => _remoteRecord(Map<String, dynamic>.from(item as Map)))
+        .toList();
+
+    if (remoteRecords.isEmpty) {
+      return _recordService.loadRecords();
+    }
+
+    final localRecords = await _recordService.loadRecords();
+    final byKey = <String, OfflineRecord>{
+      for (final record in localRecords) _recordKey(record): record,
+    };
+
+    for (final record in remoteRecords) {
+      byKey[_recordKey(record)] = record;
+    }
+
+    final merged = byKey.values.toList()
+      ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+    await _recordService.saveRecords(merged);
+    return merged;
+  }
+
+  OfflineRecord _remoteRecord(Map<String, dynamic> json) {
+    final normalized = Map<String, dynamic>.from(json);
+    normalized['id'] = (normalized['local_id'] ?? normalized['id']).toString();
+    return _cleanRecord(
+      OfflineRecord.fromJson(normalized),
+      syncStatus: SyncStatus.synced,
+    );
+  }
+
+  OfflineRecord _cleanRecord(
+    OfflineRecord record, {
+    SyncStatus? syncStatus,
+    DateTime? uploadedAt,
+    VerificationStatus? verificationStatus,
+  }) => OfflineRecord(
+    id: record.id,
+    userId: record.userId,
+    deviceId: record.deviceId,
+    recordType: record.recordType,
+    payloadJson: record.payloadJson,
+    syncStatus: syncStatus ?? record.syncStatus,
+    idempotencyKey: record.idempotencyKey,
+    recordedAt: record.recordedAt,
+    uploadedAt: uploadedAt ?? record.uploadedAt,
+    verificationStatus: verificationStatus ?? record.verificationStatus,
+  );
+
+  String _recordKey(OfflineRecord record) => record.idempotencyKey.isNotEmpty
+      ? 'idempotency:${record.idempotencyKey}'
+      : 'id:${record.id}';
+
+  String? _errorMessage(String body) {
+    try {
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      return decoded['message']?.toString();
+    } catch (_) {
+      return null;
     }
   }
 }

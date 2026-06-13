@@ -17,10 +17,10 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
     required RecordService recordService,
     required SyncService syncService,
     Connectivity? connectivity,
-  })  : _recordService = recordService,
-        _syncService = syncService,
-        _connectivity = connectivity ?? Connectivity(),
-        super(const RecordsState()) {
+  }) : _recordService = recordService,
+       _syncService = syncService,
+       _connectivity = connectivity ?? Connectivity(),
+       super(const RecordsState()) {
     on<RecordsStarted>(_onStarted);
     on<RecordsCleared>(_onCleared);
     on<RecordsRefreshRequested>(_onRefreshRequested);
@@ -32,8 +32,9 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
     on<RecordsConnectivityChanged>(_onConnectivityChanged);
 
     _connectivity.checkConnectivity().then(_handleConnectivityResults);
-    _connectivitySub =
-        _connectivity.onConnectivityChanged.listen(_handleConnectivityResults);
+    _connectivitySub = _connectivity.onConnectivityChanged.listen(
+      _handleConnectivityResults,
+    );
   }
 
   final RecordService _recordService;
@@ -172,15 +173,13 @@ class RecordsBloc extends Bloc<RecordsEvent, RecordsState> {
 
     emit(state.copyWith(syncing: true));
     try {
-      final synced = await _syncService.syncPending(session.token);
-      if (synced.isNotEmpty) {
-        await _recordService.saveRecords(synced);
-      }
+      await _syncService.syncAll(session.token);
+      final records = await _load();
       emit(
         state.copyWith(
-          records: await _load(),
+          records: records,
           syncing: false,
-          notice: _notice('${synced.length} catatan berhasil disinkronkan'),
+          notice: _notice('Sinkronisasi selesai (${records.length} catatan)'),
         ),
       );
     } catch (e) {
