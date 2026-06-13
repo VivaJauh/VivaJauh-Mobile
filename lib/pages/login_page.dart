@@ -2,6 +2,41 @@ import 'package:flutter/material.dart';
 
 import '../widgets/widgets.dart';
 
+class _DemoAccount {
+  const _DemoAccount({
+    required this.label,
+    required this.username,
+    required this.password,
+    required this.icon,
+  });
+
+  final String label;
+  final String username;
+  final String password;
+  final IconData icon;
+}
+
+const _demoAccounts = [
+  _DemoAccount(
+    label: 'Anggota Harapan Baru',
+    username: 'pak_hendra',
+    password: 'password123',
+    icon: AppIcons.navProfile,
+  ),
+  _DemoAccount(
+    label: 'Primary Harapan Baru',
+    username: 'primary_harapanbaru',
+    password: 'password123',
+    icon: AppIcons.navMembers,
+  ),
+  _DemoAccount(
+    label: 'Secondary Admin',
+    username: 'secondary_admin',
+    password: 'password123',
+    icon: AppIcons.navKoperasi,
+  ),
+];
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     required this.loading,
@@ -15,7 +50,7 @@ class LoginPage extends StatefulWidget {
   final String? errorMessage;
   final Future<void> Function(String identifier, String password) onLogin;
   final Future<void> Function(String name, String email, String password)
-      onRegister;
+  onRegister;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -103,6 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                               () => obscurePassword = !obscurePassword,
                             ),
                             onSubmit: submit,
+                            onUseDemoAccount: useDemoAccount,
                             nameText: nameText,
                             identifierText: identifierText,
                             emailText: emailText,
@@ -168,6 +204,15 @@ class _LoginPageState extends State<LoginPage> {
     }
     await widget.onLogin(username.text.trim(), password.text);
   }
+
+  void useDemoAccount(_DemoAccount account) {
+    setState(() {
+      registerMode = false;
+      obscurePassword = false;
+      username.text = account.username;
+      password.text = account.password;
+    });
+  }
 }
 
 class _HeroHeader extends StatelessWidget {
@@ -192,10 +237,10 @@ class _HeroHeader extends StatelessWidget {
             Text(
               'VivaJauh',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         ),
@@ -203,11 +248,11 @@ class _HeroHeader extends StatelessWidget {
         Text(
           registerMode ? 'Daftar akun koperasi' : 'Masuk ke VivaJauh',
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                height: 1.02,
-                letterSpacing: -1,
-              ),
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            height: 1.02,
+            letterSpacing: -1,
+          ),
         ),
         const SizedBox(height: 10),
         Text(
@@ -215,9 +260,9 @@ class _HeroHeader extends StatelessWidget {
               ? 'Buat akun untuk petugas dan koperasi yang akan dikelola.'
               : 'Untuk pencatatan pakan, ternak, sync data, dan laporan koperasi.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withAlpha(230),
-                height: 1.42,
-              ),
+            color: Colors.white.withAlpha(230),
+            height: 1.42,
+          ),
         ),
       ],
     );
@@ -238,6 +283,7 @@ class _AuthPanel extends StatelessWidget {
     required this.onToggleMode,
     required this.onTogglePassword,
     required this.onSubmit,
+    required this.onUseDemoAccount,
     required this.nameText,
     required this.identifierText,
     required this.emailText,
@@ -259,6 +305,7 @@ class _AuthPanel extends StatelessWidget {
   final VoidCallback onToggleMode;
   final VoidCallback onTogglePassword;
   final Future<void> Function() onSubmit;
+  final ValueChanged<_DemoAccount> onUseDemoAccount;
   final String? Function(String?) nameText;
   final String? Function(String?) identifierText;
   final String? Function(String?) emailText;
@@ -333,6 +380,12 @@ class _AuthPanel extends StatelessWidget {
                 obscureText: obscurePassword,
                 onSubmitted: (_) => onSubmit(),
               ),
+            ] else ...[
+              const SizedBox(height: 14),
+              _DemoAccountPicker(
+                accounts: _demoAccounts,
+                onSelected: loading ? null : onUseDemoAccount,
+              ),
             ],
             if (errorMessage != null) ...[
               const SizedBox(height: 14),
@@ -394,19 +447,18 @@ class _PanelHeader extends StatelessWidget {
         Text(
           registerMode ? 'Buat akun' : 'Login',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-              ),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.4,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           registerMode
               ? 'Isi data dasar koperasi'
               : 'Masukkan akun yang terdaftar',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: AppColors.muted),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
         ),
       ],
     );
@@ -440,9 +492,9 @@ class _LabeledField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.text,
-                fontWeight: FontWeight.w800,
-              ),
+            color: AppColors.text,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 7),
         TextFormField(
@@ -481,6 +533,97 @@ class _LabeledField extends StatelessWidget {
   }
 }
 
+class _DemoAccountPicker extends StatelessWidget {
+  const _DemoAccountPicker({required this.accounts, required this.onSelected});
+
+  final List<_DemoAccount> accounts;
+  final ValueChanged<_DemoAccount>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Akun demo',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: AppColors.text,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        for (final account in accounts) ...[
+          _DemoAccountButton(
+            account: account,
+            onPressed: onSelected == null ? null : () => onSelected!(account),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _DemoAccountButton extends StatelessWidget {
+  const _DemoAccountButton({required this.account, required this.onPressed});
+
+  final _DemoAccount account;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(account.icon, size: 18, color: AppColors.primaryDark),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    account.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    account.username,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
 
@@ -499,9 +642,9 @@ class _ErrorBanner extends StatelessWidget {
       child: Text(
         message,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.danger,
-              fontWeight: FontWeight.w700,
-            ),
+          color: AppColors.danger,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
